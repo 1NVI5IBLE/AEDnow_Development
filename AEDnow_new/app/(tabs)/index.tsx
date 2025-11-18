@@ -52,6 +52,8 @@ const findNearestAED = (userLocation: { latitude: number; longitude: number }) =
 
 export default function HomeScreen() {
   const [userLocation, setUserLocation] = useState<{ latitude: number; longitude: number } | null>(null);
+  const mapRef = useRef<MapView>(null);
+  const [nearestAED, setNearestAED] = useState<any>(null);
 
 useEffect(() => {
   (async () => {
@@ -115,7 +117,7 @@ useEffect(() => {
     );
   }
 
-  const nearestAED = findNearestAED(userLocation);
+  
 
   return (
     <View style={styles.container}>
