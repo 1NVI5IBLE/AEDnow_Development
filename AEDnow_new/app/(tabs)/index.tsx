@@ -109,6 +109,26 @@ useEffect(() => {
   //   return () => subscription && subscription.remove();
   // }, []);
 
+  const handleFindNearestAED = () => {
+    if (!userLocation) return;
+
+    const nearest = findNearestAED(userLocation);
+    if (!nearest) return;
+
+    setNearestAED(nearest);
+
+    mapRef.current?.animateToRegion(
+      {
+        latitude: nearest.latitude,
+        longitude: nearest.longitude,
+        latitudeDelta: 0.005,
+        longitudeDelta: 0.005,
+      },
+      1000
+    );
+  }
+
+
   if (!userLocation) {
     return (
       <View style={styles.loadingContainer}>
