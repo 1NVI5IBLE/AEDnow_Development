@@ -19,9 +19,8 @@ function getDistance(lat1: number, lon1: number, lat2: number, lon2: number) {
 
   const a =
     Math.sin(dLat / 2) ** 2 +
-    Math.cos(toRad(lat1)) *
-      Math.cos(toRad(lat2)) *
-      Math.sin(dLon / 2) ** 2;
+    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) *
+    Math.sin(dLon / 2) ** 2;
 
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 
@@ -52,21 +51,59 @@ const findNearestAED = (userLocation: { latitude: number; longitude: number }) =
 export default function HomeScreen() {
   const [userLocation, setUserLocation] = useState<{ latitude: number; longitude: number } | null>(null);
 
-  useEffect(() => {
-    (async () => {
-      let { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== 'granted') {
-        Alert.alert("Permission denied", "We need your location to find nearby AEDs.");
-        return;
-      }
+useEffect(() => {
+  (async () => {
+    let { status } = await Location.requestForegroundPermissionsAsync();
 
-      let location = await Location.getCurrentPositionAsync({});
-      setUserLocation({
-        latitude: location.coords.latitude,
-        longitude: location.coords.longitude,
-      });
-    })();
-  }, []);
+    if (status !== 'granted') {
+      Alert.alert("Permission denied", "We need your location to find nearby AEDs.");
+      return;
+    }
+
+    try {
+      await Location.enableNetworkProviderAsync();
+
+      
+      const subscription = await Location.watchPositionAsync(
+        {
+          accuracy: Location.Accuracy.Highest,
+          timeInterval: 1000,   
+          distanceInterval: 1, 
+        },
+        (location) => {
+          console.log("LIVE LOCATION:", location);
+          setUserLocation({
+            latitude: location.coords.latitude,
+            longitude: location.coords.longitude,
+          });
+        }
+      );
+
+      
+      return () => subscription.remove();
+
+    } catch (err) {
+      console.log("LOCATION ERROR:", err);
+      Alert.alert("Location Error", JSON.stringify(err, null, 2));
+    }
+  })();
+}, []);
+
+
+  // Optional: enable continuous tracking
+  // useEffect(() => {
+  //   const subscription = Location.watchPositionAsync(
+  //     { accuracy: Location.Accuracy.Highest, distanceInterval: 2 },
+  //     (location) => {
+  //       console.log("LIVE LOCATION:", location);
+  //       setUserLocation({
+  //         latitude: location.coords.latitude,
+  //         longitude: location.coords.longitude,
+  //       });
+  //     }
+  //   );
+  //   return () => subscription && subscription.remove();
+  // }, []);
 
   if (!userLocation) {
     return (
@@ -92,8 +129,10 @@ export default function HomeScreen() {
           longitudeDelta: 0.01,
         }}
       >
+     
         <Marker coordinate={userLocation} title="You are here" />
 
+        
         {AED_SAMPLE_LOCATIONS.map((aed) => (
           <Marker
             key={aed.id}
@@ -102,6 +141,7 @@ export default function HomeScreen() {
           />
         ))}
 
+       
         {nearestAED && (
           <MapViewDirections
             origin={userLocation}
