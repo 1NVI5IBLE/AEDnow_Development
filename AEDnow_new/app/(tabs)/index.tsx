@@ -3,6 +3,8 @@ import * as Location from 'expo-location';
 import MapView, { Marker } from 'react-native-maps';
 import MapViewDirections from 'react-native-maps-directions';
 import { View, Alert, StyleSheet, ActivityIndicator } from 'react-native';
+import { Button } from 'react-native';
+import {useRef} from 'react';
 
 const AED_SAMPLE_LOCATIONS = [
   { id: 1, name: 'AED 1', latitude: 53.3498, longitude: -6.2603 },
