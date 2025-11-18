@@ -7,7 +7,7 @@ import { Button } from 'react-native';
 import {useRef} from 'react';
 
 const AED_SAMPLE_LOCATIONS = [
-  { id: 1, name: 'AED 1', latitude: 53.3498, longitude: -6.2603 },
+  { id: 1, name: "AED 1", latitude: 40.7128, longitude: -74.0060 },
   { id: 2, name: 'AED 2', latitude: 53.3478, longitude: -6.2590 },
   { id: 3, name: 'AED 3', latitude: 53.3505, longitude: -6.2620 },
 ];
@@ -142,6 +142,7 @@ useEffect(() => {
   return (
     <View style={styles.container}>
       <MapView
+      ref={mapRef}
         provider="google"
         style={styles.map}
         showsUserLocation={true}
@@ -179,6 +180,10 @@ useEffect(() => {
           />
         )}
       </MapView>
+      <View style={styles.buttonContainer}>
+            <Button title="Find Nearest AED" onPress={handleFindNearestAED} color="red" />
+      </View>
+
     </View>
   );
 }
@@ -193,5 +198,11 @@ const styles = StyleSheet.create({
   map: {
     width: '100%',
     height: '100%',
+  },
+  buttonContainer: {
+    position: 'absolute',
+    bottom: 40,
+    left: 20,
+    right: 20,
   },
 });
