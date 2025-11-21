@@ -1,21 +1,18 @@
-// Database configuration
-// MongoDB, PostgreSQL, or other databases
+// Database configuration for MongoDB
+const mongoose = require('mongoose');
 
-const dbConfig = {
-  development: {
-    url: process.env.DATABASE_URL || 'your_dev_database_url',
-    options: {
-      
-    }
-  },
-  production: {
-    url: process.env.DATABASE_URL,
-    options: {
-      
-    }
+const connectDB = async () => {
+  try {
+    const conn = await mongoose.connect(process.env.MONGODB_URI, {
+      useNewUrlParser: true,
+      useUnifiedTopology: true,
+    });
+
+    console.log(`MongoDB Connected: ${conn.connection.host}`);
+  } catch (error) {
+    console.error(`Error: ${error.message}`);
+    process.exit(1);
   }
 };
 
-const env = process.env.NODE_ENV || 'development';
-
-module.exports = dbConfig[env];
+module.exports = connectDB;
