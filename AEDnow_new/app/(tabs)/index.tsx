@@ -2,14 +2,13 @@ import { useEffect, useState } from 'react';
 import * as Location from 'expo-location';
 import MapView, { Marker } from 'react-native-maps';
 import MapViewDirections from 'react-native-maps-directions';
-import { View, Alert, StyleSheet, ActivityIndicator } from 'react-native';
-import { Button } from 'react-native';
+import { View, Alert, StyleSheet, ActivityIndicator, Image, Button } from "react-native";
 import {useRef} from 'react';
 
 const AED_SAMPLE_LOCATIONS = [
-  { id: 1, name: "AED 1", latitude: 40.7128, longitude: -74.0060 },
-  { id: 2, name: 'AED 2', latitude: 53.3478, longitude: -6.2590 },
-  { id: 3, name: 'AED 3', latitude: 53.3505, longitude: -6.2620 },
+  { id: 1, name: "AED 1", latitude: 40.7128, longitude: -74.0060, status : "Open" },
+  { id: 2, name: 'AED 2', latitude: 53.3478, longitude: -6.2590, status : "Open"},
+  { id: 3, name: 'AED 3', latitude: 53.3505, longitude: -6.2620, status: "Closed"},
 ];
 
 function getDistance(lat1: number, lon1: number, lat2: number, lon2: number) {
@@ -34,6 +33,9 @@ const findNearestAED = (userLocation: { latitude: number; longitude: number }) =
   let closestDistance = Infinity;
 
   for (const aed of AED_SAMPLE_LOCATIONS) {
+
+    if (aed.status !== "Open") continue;
+
     const distance = getDistance(
       userLocation.latitude,
       userLocation.longitude,
@@ -159,12 +161,23 @@ useEffect(() => {
 
         
         {AED_SAMPLE_LOCATIONS.map((aed) => (
-          <Marker
-            key={aed.id}
-            coordinate={{ latitude: aed.latitude, longitude: aed.longitude }}
-            title={aed.name}
-          />
-        ))}
+        <Marker
+          key={aed.id}
+          coordinate={{ latitude: aed.latitude, longitude: aed.longitude }}
+          title={aed.name}
+        >
+          <View style={{ width: 35, height: 35 }}>
+            <Image
+              source={
+                aed.status === "Open"
+                  ? require("../../assets/images/markers/green_marker.png")
+                  : require("../../assets/images/markers/red_map_marker_icon.png")
+              }
+              style={{ width: "100%", height: "100%", resizeMode: "contain" }}
+            />
+          </View>
+        </Marker>
+      ))}
 
        
         {nearestAED && (
