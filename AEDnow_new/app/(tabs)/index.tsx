@@ -2,7 +2,8 @@ import { useEffect, useState } from 'react';
 import * as Location from 'expo-location';
 import MapView, { Marker } from 'react-native-maps';
 import MapViewDirections from 'react-native-maps-directions';
-import { View, Alert, StyleSheet, ActivityIndicator, Image, Button } from "react-native";
+import { View, Alert, StyleSheet, ActivityIndicator, Button, Text } from "react-native";
+import { Image } from 'react-native';
 import {useRef} from 'react';
 
 const AED_SAMPLE_LOCATIONS = [
@@ -96,6 +97,8 @@ useEffect(() => {
 }, []);
 
 
+
+
   // Optional: enable continuous tracking
   // useEffect(() => {
   //   const subscription = Location.watchPositionAsync(
@@ -143,6 +146,28 @@ useEffect(() => {
 
   return (
     <View style={styles.container}>
+      {nearestAED && (
+        <View style={styles.aedInfoContainer}>
+          <View style={styles.aedInfoBox}>
+            <View style={{ flexDirection: "row", alignItems: "center" }}>
+              <View
+                style={{
+                  width: 12,
+                  height: 12,
+                  borderRadius: 6,
+                  backgroundColor: nearestAED.status === "Open" ? "green" : "red",
+                  marginRight: 8,
+                }}
+              />
+              <Text style={styles.aedName}>{nearestAED.name}</Text>
+            </View>
+            <Text style={styles.aedStatus}>
+              {nearestAED.status === "Open" ? "Open" : "Closed"}
+            </Text>
+          </View>
+        </View>
+      )}
+
       <MapView
       ref={mapRef}
         provider="google"
@@ -217,5 +242,35 @@ const styles = StyleSheet.create({
     bottom: 40,
     left: 20,
     right: 20,
+  },
+
+   aedInfoContainer: {
+    position: "absolute",
+    top: 80,
+    left: 20,
+    right: 20,
+    zIndex: 10,
+  },
+
+  aedInfoBox: {
+    backgroundColor: "white",
+    padding: 12,
+    borderRadius: 10,
+    width: "100%",
+    shadowColor: "#000",
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 5,
+  },
+
+  aedName: {
+    fontSize: 16,
+    fontWeight: "bold",
+  },
+
+  aedStatus: {
+    marginTop: 4,
+    fontSize: 14,
+    opacity: 0.7,
   },
 });
