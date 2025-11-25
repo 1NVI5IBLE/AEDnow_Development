@@ -8,8 +8,8 @@ import {useRef} from 'react';
 
 const AED_SAMPLE_LOCATIONS = [
   { id: 1, name: "AED 1", latitude: 40.7128, longitude: -74.0060, status : "Open" },
-  { id: 2, name: 'AED 2', latitude: 53.3478, longitude: -6.2590, status : "Open"},
-  { id: 3, name: 'AED 3', latitude: 53.3505, longitude: -6.2620, status: "Closed"},
+  { id: 2, name: 'Dunnes Stores', latitude: 53.3478, longitude: -6.2590, status : "Open", Address: "123 O\'Connell St, Dublin" },
+  { id: 3, name: 'EuroGiant', latitude: 53.3505, longitude: -6.2620,  status: "Closed", Address: "456 O\'Connell St Dublin" },
 ];
 
 function getDistance(lat1: number, lon1: number, lat2: number, lon2: number) {
@@ -96,7 +96,12 @@ useEffect(() => {
   })();
 }, []);
 
-
+useEffect(() => {
+  if (userLocation) {
+    const nearest = findNearestAED(userLocation);
+    setNearestAED(nearest);
+  }
+}, [userLocation]);
 
 
   // Optional: enable continuous tracking
@@ -162,7 +167,10 @@ useEffect(() => {
               <Text style={styles.aedName}>{nearestAED.name}</Text>
             </View>
             <Text style={styles.aedStatus}>
-              {nearestAED.status === "Open" ? "Open" : "Closed"}
+              {nearestAED.status === "Open" ? "Open" : "Closed"} 
+            </Text>
+             <Text style={styles.aedStatus}>
+              {nearestAED.Address} 
             </Text>
           </View>
         </View>
