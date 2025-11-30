@@ -2,12 +2,10 @@ const express = require('express');
 const router = express.Router();
 
 // Import route modules
-// const userRoutes = require('./userRoutes');
-// const aedRoutes = require('./aedRoutes');
+const aedLocationRoutes = require('./aedLocationRoutes');
 
-// route modules
-// router.use('/users', userRoutes);
-// router.use('/aeds', aedRoutes);
+// Use route modules
+router.use('/aedlocations', aedLocationRoutes);
 
 // Example route
 router.get('/', (req, res) => {

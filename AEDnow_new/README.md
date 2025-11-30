@@ -35,6 +35,23 @@ npm run reset-project
 
 This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
 
+## Starting the program
+
+Navigate to the program:
+
+```bash
+cd \AEDnow new\
+```
+
+Then run:
+
+```bash
+npm run android
+```
+Run these commands inside visual studio
+# Important
+This command will ONLY run if you have Android studio opened first, otherwise you will receive an error
+
 ## Learn more
 
 To learn more about developing your project with Expo, look at the following resources:
