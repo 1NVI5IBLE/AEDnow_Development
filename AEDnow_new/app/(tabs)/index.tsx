@@ -2,15 +2,18 @@ import { useEffect, useState } from 'react';
 import * as Location from 'expo-location';
 import MapView, { Marker } from 'react-native-maps';
 import MapViewDirections from 'react-native-maps-directions';
-import { View, Alert, StyleSheet, ActivityIndicator, Button, Text } from "react-native";
+import { View, Alert, StyleSheet, ActivityIndicator, Button, Text, TouchableOpacity} from "react-native";
 import { Image } from 'react-native';
 import {useRef} from 'react';
 
+
+
 const AED_SAMPLE_LOCATIONS = [
-  { id: 1, name: "AED 1", latitude: 40.7128, longitude: -74.0060, status : "Open" },
   { id: 2, name: 'Dunnes Stores', latitude: 53.3478, longitude: -6.2590, status : "Open", Address: "123 O\'Connell St, Dublin" },
   { id: 3, name: 'EuroGiant', latitude: 53.3505, longitude: -6.2620,  status: "Closed", Address: "456 O\'Connell St Dublin" },
 ];
+
+
 
 function getDistance(lat1: number, lon1: number, lat2: number, lon2: number) {
   const R = 6371e3;
@@ -28,6 +31,8 @@ function getDistance(lat1: number, lon1: number, lat2: number, lon2: number) {
 
   return R * c;
 }
+
+
 
 const findNearestAED = (userLocation: { latitude: number; longitude: number }) => {
   let nearestAED = null;
@@ -53,10 +58,13 @@ const findNearestAED = (userLocation: { latitude: number; longitude: number }) =
   return nearestAED;
 };
 
+
+
 export default function HomeScreen() {
   const [userLocation, setUserLocation] = useState<{ latitude: number; longitude: number } | null>(null);
   const mapRef = useRef<MapView>(null);
   const [nearestAED, setNearestAED] = useState<any>(null);
+  const [showSheet, setShowSheet] = useState(false);
 
 useEffect(() => {
   (async () => {
@@ -96,6 +104,9 @@ useEffect(() => {
   })();
 }, []);
 
+
+
+
 useEffect(() => {
   if (userLocation) {
     const nearest = findNearestAED(userLocation);
@@ -104,7 +115,7 @@ useEffect(() => {
 }, [userLocation]);
 
 
-  // Optional: enable continuous tracking
+  // Optional: 
   // useEffect(() => {
   //   const subscription = Location.watchPositionAsync(
   //     { accuracy: Location.Accuracy.Highest, distanceInterval: 2 },
@@ -139,6 +150,7 @@ useEffect(() => {
   }
 
 
+
   if (!userLocation) {
     return (
       <View style={styles.loadingContainer}>
@@ -147,12 +159,22 @@ useEffect(() => {
     );
   }
 
+
   
 
   return (
     <View style={styles.container}>
+      <View style = {styles.header}>
+        <Text style={styles.headerTitle}>Nearby AEDs</Text>
+        <Text style={styles.headerSubtitle}>Live defibrillator locations near you</Text>
+      </View>
+
       {nearestAED && (
-        <View style={styles.aedInfoContainer}>
+        <TouchableOpacity 
+          style={styles.aedInfoContainer}
+          onPress={() => setShowSheet(true)}
+          activeOpacity={0.8}
+        >
           <View style={styles.aedInfoBox}>
             <View style={{ flexDirection: "row", alignItems: "center" }}>
               <View
@@ -167,14 +189,14 @@ useEffect(() => {
               <Text style={styles.aedName}>{nearestAED.name}</Text>
             </View>
             <Text style={styles.aedStatus}>
-              {nearestAED.status === "Open" ? "Open" : "Closed"} 
-            </Text>
-             <Text style={styles.aedStatus}>
-              {nearestAED.Address} 
+              {nearestAED.status === "Open" ? "Open" : "Closed"}
             </Text>
           </View>
-        </View>
+        </TouchableOpacity>
       )}
+
+
+
 
       <MapView
       ref={mapRef}
@@ -222,17 +244,36 @@ useEffect(() => {
             }}
             apikey="AIzaSyAsbwoWpdZ61S0x870J_S0E9NPNMx2IvuE"
             strokeWidth={4}
-            strokeColor="red"
+            strokeColor="#2ecc71"
           />
         )}
+
+
       </MapView>
       <View style={styles.buttonContainer}>
-            <Button title="Find Nearest AED" onPress={handleFindNearestAED} color="red" />
+            <Button title="Find Nearest AED" onPress={handleFindNearestAED} color="#069864" />
       </View>
 
+        {showSheet && nearestAED && (
+          <View style={styles.bottomSheet}>
+            <Text style={styles.aedName}>{nearestAED.name}</Text>
+            <Text>Status: {nearestAED.status}</Text>
+            <Text>Latitude: {nearestAED.latitude}</Text>
+            <Text>Longitude: {nearestAED.longitude}</Text>
+
+            <View style={{ marginTop: 20 }}>
+              <Button title="Close" onPress={() => setShowSheet(false)} color="#e5383b" />
+            </View>
+         </View>
+        )}
+
     </View>
+    
   );
 }
+
+
+
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
@@ -250,11 +291,47 @@ const styles = StyleSheet.create({
     bottom: 40,
     left: 20,
     right: 20,
+    
   },
+
+
+  header: {
+  position: "absolute",
+  top: 0,
+  left: 0,
+  right: 0,
+
+  backgroundColor: "#e5383b",
+  paddingTop: 60,
+  paddingBottom: 20,        // 👈 makes it “come down”
+  borderBottomLeftRadius: 32,
+  borderBottomRightRadius: 32,
+
+  zIndex: 5,                // 👈 below AED box
+  elevation: 5,
+
+  shadowColor: "#000",
+  shadowOpacity: 0.25,
+  shadowRadius: 10,
+},
+
+headerTitle: {
+  color: "white",
+  fontSize: 22,
+  fontWeight: "bold",
+  textAlign: "center",
+},
+
+headerSubtitle: {
+  color: "#ffecec",
+  textAlign: "center",
+  marginTop: 6,
+},
+
 
    aedInfoContainer: {
     position: "absolute",
-    top: 80,
+    top: 150,
     left: 20,
     right: 20,
     zIndex: 10,
@@ -281,4 +358,21 @@ const styles = StyleSheet.create({
     fontSize: 14,
     opacity: 0.7,
   },
+
+  bottomSheet: {
+  position: "absolute",
+  bottom: 0,
+  left: 0,
+  right: 0,
+  height: "40%",   
+  backgroundColor: "#fff",
+  borderTopLeftRadius: 20,
+  borderTopRightRadius: 20,
+  padding: 20,
+  elevation: 10,
+  shadowColor: "#000",
+  shadowOpacity: 0.25,
+  shadowRadius: 5,
+}
+
 });
