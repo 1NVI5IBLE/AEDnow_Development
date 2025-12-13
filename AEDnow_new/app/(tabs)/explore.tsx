@@ -3,6 +3,10 @@ import { View, Text, StyleSheet, TouchableOpacity, Linking } from "react-native"
 import { Ionicons } from "@expo/vector-icons";
 import { ScrollView } from "react-native";
 import * as Speech from "expo-speech";
+import { Audio } from "expo-av";
+import { useEffect, useRef } from "react";
+import { Vibration } from "react-native"; 
+
 
 type CPRStep = {
   id: number;
@@ -12,15 +16,83 @@ type CPRStep = {
   bullets: string[];
 };
 
+type CPRType = "adult" | "child" | "baby";
+
+
+
 export default function CPRGuide() {
+  const [cprType, setCprType] = useState<CPRType>("adult")
   const [openStep, setOpenStep] = useState<number | null>(1);
+  const beepSound = useRef<Audio.Sound | null>(null);
+  const beepInterval = useRef<number | null>(null);
+  const vibration_Duration = 60;
+
+  
 
   const speakFullStep = (step: CPRStep) => {
     const text = `${step.title}. ${step.subtitle}. ${step.bullets.join(". ")}`;
     Speech.speak(text);
   };
 
-  const CPR_STEPS: CPRStep[] = [
+
+
+
+  const startCPRBeep = async () => {
+    if (beepInterval.current !== null) return;
+
+    await Audio.setAudioModeAsync({
+      playsInSilentModeIOS: true,
+      staysActiveInBackground: true,
+    });
+
+    const { sound } = await Audio.Sound.createAsync(
+    require("../../assets/images/sounds/beep.mp3")
+  );
+
+  beepSound.current = sound;
+
+  // 600 ms
+  // 110 BPM ≈ 545–600 ms (600 ms is fine and slightly calmer)
+  beepInterval.current = setInterval(() => {
+    beepSound.current?.replayAsync().catch(() => {});
+    Vibration.vibrate(vibration_Duration);
+  }, 600);
+};
+
+
+const stopCPRBeep = async () => {
+  if (beepInterval.current !== null) {
+    clearInterval(beepInterval.current);
+    beepInterval.current = null;
+  }
+
+  Vibration.cancel();
+
+  if (beepSound.current) {
+    await beepSound.current.stopAsync();
+    await beepSound.current.unloadAsync();
+    beepSound.current = null;
+  }
+};
+
+
+useEffect(() => {
+  if (openStep == 5) {
+    startCPRBeep();
+  }else{
+    stopCPRBeep();
+  }
+
+  return () => {
+    stopCPRBeep();
+  };
+}, [openStep])
+
+
+
+
+  const CPR_DATA: Record<CPRType, CPRStep[]> = {
+  adult: [
     {
       id: 1,
       title: "Check Safety & Responsiveness",
@@ -31,7 +103,70 @@ export default function CPRGuide() {
         "Tap the patient and shout, “Can you hear me?”.",
         "Check for normal breathing.",
         "If unresponsive, go to Step 2."
-      ]
+      ],
+    },
+    {
+      id: 2,
+      title: "Call Emergency Services",
+      subtitle: "Call 999 — put on speaker if alone - do NOT delay CPR.",
+      time: "10–20 seconds",
+      bullets: [
+        "Dial 999 immediately.",
+        "Put phone on speaker.",
+        "State location clearly.",
+        "Begin CPR as soon as the call is made.",
+        "Send someone to get an AED."
+      ],
+    },
+    {
+      id: 3,
+      title: "Locate & Prepare the AED",
+      subtitle: "Retrieve the nearest AED and prepare pads.",
+      time: "20–30 seconds",
+      bullets: [
+        "Turn AED on.",
+        "Expose chest.",
+        "Attach pads as shown."
+      ],
+    },
+    {
+      id: 4,
+      title: "Deliver Shock if Advised",
+      subtitle: "Stand clear during analysis.",
+      time: "10–20 seconds",
+      bullets: [
+        "Ensure no one is touching patient.",
+        "Press shock if advised.",
+        "Resume CPR immediately."
+      ],
+    },
+    {
+      id: 5,
+      title: "Continue CPR",
+      subtitle: "Push hard and fast.",
+      time: "2 minutes per cycle",
+      bullets: [
+        "100–120 compressions per minute.",
+        "Depth at least 5 cm.",
+        "Allow full recoil."
+      ],
+    },
+],
+
+  child: [
+    {
+      id: 1,
+      title: "Check Safety & Responsiveness",
+      subtitle: "Check if the child responds and is breathing.",
+      time: "5–10 seconds",
+      bullets: [
+        "Tap and shout gently.",
+        "Put one hand on their forehead.",
+        "Tilt their head back.",
+        "Lift their chin.",
+        "Check for breathing.",
+        "If you can see an object in their mouth or nose, try to remove it."
+      ],
     },
     {
       id: 2,
@@ -43,7 +178,8 @@ export default function CPRGuide() {
         "Put phone on speaker.",
         "State location clearly.",
         "Send someone to get an AED."
-      ]
+
+      ],
     },
     {
       id: 3,
@@ -54,31 +190,44 @@ export default function CPRGuide() {
         "Turn AED on.",
         "Expose chest.",
         "Attach pads as shown."
-      ]
+      ],
+    },
+
+  ],
+
+  baby: [
+    {
+      id: 1,
+      title: "Check Responsiveness",
+      subtitle: "Check if the baby responds and is breathing.",
+      time: "5–10 seconds",
+      bullets: [
+        "Tap foot gently.",
+        "Look for breathing.",
+      ],
     },
     {
-      id: 4,
-      title: "Deliver Shock if Advised",
-      subtitle: "Stand clear during analysis.",
+      id: 2,
+      title: "Call Emergency Services",
+      subtitle: "Call 999 immediately.",
       time: "10–20 seconds",
       bullets: [
-        "Ensure no one is touching patient.",
-        "Press shock if advised.",
-        "Resume CPR immediately."
-      ]
+        "Put phone on speaker.",
+      ],
     },
     {
-      id: 5,
-      title: "Continue CPR",
-      subtitle: "Push hard and fast.",
+      id: 3,
+      title: "Start CPR",
+      subtitle: "Use two fingers in the centre of the chest.",
       time: "2 minutes per cycle",
       bullets: [
-        "100–120 compressions per minute.",
-        "Depth at least 5 cm.",
-        "Allow full recoil."
-      ]
-    }
-  ];
+        "Press about 4 cm deep.",
+        "Allow full recoil.",
+      ],
+    },
+  ],
+};
+
 
   const toggleStep = (id: number) => {
     setOpenStep(prev => (prev === id ? null : id));
@@ -113,8 +262,40 @@ export default function CPRGuide() {
           </TouchableOpacity>
         </View>
 
+
+      <View style={styles.tabsRow}>
+       {[
+        { key: "adult", label: "Adult" },
+        { key: "child", label: "Child" },
+        { key: "baby", label: "Baby" },
+  ].map(tab => (
+    <TouchableOpacity
+      key={tab.key}
+      onPress={() => {
+        setCprType(tab.key as CPRType);
+        setOpenStep(null);
+      }}
+      style={styles.tabButton}
+      activeOpacity={0.7}
+    >
+      <Text
+        style={[
+          styles.tabText,
+          cprType === tab.key && styles.tabTextActive,
+        ]}
+      >
+        {tab.label}
+      </Text>
+
+      {cprType === tab.key && <View style={styles.tabUnderline} />}
+    </TouchableOpacity>
+  ))}
+</View>
+
+
+
         {/* CPR STEPS */}
-        {CPR_STEPS.map(step => {
+        {CPR_DATA[cprType].map(step => {
           const isOpen = openStep === step.id;
 
           return (
@@ -357,4 +538,35 @@ const styles = StyleSheet.create({
     fontSize: 14,
     lineHeight: 20,
   },
+
+tabsRow: {
+  flexDirection: "row",
+  justifyContent: "space-around",
+  marginBottom: 24,
+},
+
+tabButton: {
+  alignItems: "center",
+  paddingVertical: 6,
+},
+
+tabText: {
+  fontSize: 15,
+  fontWeight: "600",
+  color: "#6c757d",
+},
+
+tabTextActive: {
+  color: "#e5383b",
+},
+
+tabUnderline: {
+  marginTop: 6,
+  height: 3,
+  width: 30,
+  borderRadius: 2,
+  backgroundColor: "#e5383b",
+},
+
+
 });
