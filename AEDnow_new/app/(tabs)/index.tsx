@@ -272,7 +272,7 @@ useEffect(() => {
   );
 }
 
-
+/* ================= STYLES ================= */
 
 
 const styles = StyleSheet.create({
