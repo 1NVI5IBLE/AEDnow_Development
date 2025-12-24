@@ -12,6 +12,21 @@ const AED_SAMPLE_LOCATIONS = [
   { id: 2, name: 'Dunnes Stores', latitude: 53.3478, longitude: -6.2590, status : "Open", Address: "123 O\'Connell St, Dublin" },
   { id: 3, name: 'EuroGiant', latitude: 53.3505, longitude: -6.2620,  status: "Closed", Address: "456 O\'Connell St Dublin" },
 ];
+interface AEDLocation {
+  id: string;
+  name: string;
+  latitude: number;
+  longitude: number;
+  address?: string;
+  operator?: string;
+  indoor?: boolean;
+  access?: string;
+  description?: string;
+  openingHours?: string;
+  lastCheckedAt?: string;
+}
+
+const API_BASE_URL = 'http://10.0.2.2:3000/api'; // Android emulator special address for localhost
 
 
 
@@ -42,6 +57,11 @@ const findNearestAED = (userLocation: { latitude: number; longitude: number }) =
 
     if (aed.status !== "Open") continue;
 
+const findNearestAED = (userLocation: { latitude: number; longitude: number }, aedLocations: AEDLocation[]) => {
+  let nearestAED = null;
+  let closestDistance = Infinity;
+
+  for (const aed of aedLocations) {
     const distance = getDistance(
       userLocation.latitude,
       userLocation.longitude,
@@ -65,6 +85,31 @@ export default function HomeScreen() {
   const mapRef = useRef<MapView>(null);
   const [nearestAED, setNearestAED] = useState<any>(null);
   const [showSheet, setShowSheet] = useState(false);
+  const [aedLocations, setAedLocations] = useState<AEDLocation[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  // Fetch AED locations from backend
+  useEffect(() => {
+    const fetchAEDLocations = async () => {
+      try {
+        const response = await fetch(`${API_BASE_URL}/aedlocations`);
+        const data = await response.json();
+        
+        if (data.success) {
+          setAedLocations(data.data);
+        } else {
+          Alert.alert('Error', 'Failed to fetch AED locations');
+        }
+      } catch (error) {
+        console.error('Error fetching AED locations:', error);
+        Alert.alert('Error', 'Could not connect to server');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchAEDLocations();
+  }, []);
 
 useEffect(() => {
   (async () => {
@@ -152,6 +197,7 @@ useEffect(() => {
 
 
   if (!userLocation) {
+  if (!userLocation || loading) {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" />
@@ -161,6 +207,7 @@ useEffect(() => {
 
 
   
+  const nearestAED = findNearestAED(userLocation, aedLocations);
 
   return (
     <View style={styles.container}>
@@ -233,6 +280,14 @@ useEffect(() => {
           </View>
         </Marker>
       ))}
+        {aedLocations.map((aed) => (
+          <Marker
+            key={aed.id}
+            coordinate={{ latitude: aed.latitude, longitude: aed.longitude }}
+            title={aed.name}
+            description={aed.address}
+          />
+        ))}
 
        
         {nearestAED && (
