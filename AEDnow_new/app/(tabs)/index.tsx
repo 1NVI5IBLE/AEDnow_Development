@@ -8,10 +8,7 @@ import {useRef} from 'react';
 
 
 
-const AED_SAMPLE_LOCATIONS = [
-  { id: 2, name: 'Dunnes Stores', latitude: 53.3478, longitude: -6.2590, status : "Open", Address: "123 O\'Connell St, Dublin" },
-  { id: 3, name: 'EuroGiant', latitude: 53.3505, longitude: -6.2620,  status: "Closed", Address: "456 O\'Connell St Dublin" },
-];
+
 interface AEDLocation {
   id: string;
   name: string;
@@ -48,14 +45,6 @@ function getDistance(lat1: number, lon1: number, lat2: number, lon2: number) {
 }
 
 
-
-const findNearestAED = (userLocation: { latitude: number; longitude: number }) => {
-  let nearestAED = null;
-  let closestDistance = Infinity;
-
-  for (const aed of AED_SAMPLE_LOCATIONS) {
-
-    if (aed.status !== "Open") continue;
 
 const findNearestAED = (userLocation: { latitude: number; longitude: number }, aedLocations: AEDLocation[]) => {
   let nearestAED = null;
@@ -153,11 +142,11 @@ useEffect(() => {
 
 
 useEffect(() => {
-  if (userLocation) {
-    const nearest = findNearestAED(userLocation);
+  if (userLocation && aedLocations.length > 0) {
+    const nearest = findNearestAED(userLocation, aedLocations);
     setNearestAED(nearest);
   }
-}, [userLocation]);
+}, [userLocation, aedLocations]);
 
 
   // Optional: 
@@ -176,9 +165,9 @@ useEffect(() => {
   // }, []);
 
   const handleFindNearestAED = () => {
-    if (!userLocation) return;
+    if (!userLocation || aedLocations.length === 0) return;
 
-    const nearest = findNearestAED(userLocation);
+    const nearest = findNearestAED(userLocation, aedLocations);
     if (!nearest) return;
 
     setNearestAED(nearest);
@@ -196,7 +185,6 @@ useEffect(() => {
 
 
 
-  if (!userLocation) {
   if (!userLocation || loading) {
     return (
       <View style={styles.loadingContainer}>
@@ -204,10 +192,6 @@ useEffect(() => {
       </View>
     );
   }
-
-
-  
-  const nearestAED = findNearestAED(userLocation, aedLocations);
 
   return (
     <View style={styles.container}>
@@ -229,15 +213,15 @@ useEffect(() => {
                   width: 12,
                   height: 12,
                   borderRadius: 6,
-                  backgroundColor: nearestAED.status === "Open" ? "green" : "red",
+                  backgroundColor: "green",
                   marginRight: 8,
                 }}
               />
               <Text style={styles.aedName}>{nearestAED.name}</Text>
             </View>
-            <Text style={styles.aedStatus}>
-              {nearestAED.status === "Open" ? "Open" : "Closed"}
-            </Text>
+            {nearestAED.address && (
+              <Text style={styles.aedStatus}>{nearestAED.address}</Text>
+            )}
           </View>
         </TouchableOpacity>
       )}
@@ -261,25 +245,6 @@ useEffect(() => {
      
         <Marker coordinate={userLocation} title="You are here" />
 
-        
-        {AED_SAMPLE_LOCATIONS.map((aed) => (
-        <Marker
-          key={aed.id}
-          coordinate={{ latitude: aed.latitude, longitude: aed.longitude }}
-          title={aed.name}
-        >
-          <View style={{ width: 35, height: 35 }}>
-            <Image
-              source={
-                aed.status === "Open"
-                  ? require("../../assets/images/markers/green_marker.png")
-                  : require("../../assets/images/markers/red_map_marker_icon.png")
-              }
-              style={{ width: "100%", height: "100%", resizeMode: "contain" }}
-            />
-          </View>
-        </Marker>
-      ))}
         {aedLocations.map((aed) => (
           <Marker
             key={aed.id}
@@ -312,14 +277,17 @@ useEffect(() => {
         {showSheet && nearestAED && (
           <View style={styles.bottomSheet}>
             <Text style={styles.aedName}>{nearestAED.name}</Text>
-            <Text>Status: {nearestAED.status}</Text>
+            {nearestAED.address && <Text>Address: {nearestAED.address}</Text>}
+            {nearestAED.operator && <Text>Operator: {nearestAED.operator}</Text>}
+            {nearestAED.access && <Text>Access: {nearestAED.access}</Text>}
+            {nearestAED.openingHours && <Text>Hours: {nearestAED.openingHours}</Text>}
             <Text>Latitude: {nearestAED.latitude}</Text>
             <Text>Longitude: {nearestAED.longitude}</Text>
 
             <View style={{ marginTop: 20 }}>
               <Button title="Close" onPress={() => setShowSheet(false)} color="#e5383b" />
             </View>
-         </View>
+          </View>
         )}
 
     </View>
@@ -428,6 +396,6 @@ headerSubtitle: {
   shadowColor: "#000",
   shadowOpacity: 0.25,
   shadowRadius: 5,
-}
+},
 
 });
