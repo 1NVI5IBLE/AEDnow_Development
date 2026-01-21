@@ -23,7 +23,9 @@ interface AEDLocation {
   lastCheckedAt?: string;
 }
 
-const API_BASE_URL = 'http://10.0.2.2:3000/api'; // Android emulator special address for localhost
+// For local development, use: 'http://10.0.2.2:3000/api'
+// For production with AWS, use: 'https://api.aednow.online/api'
+const API_BASE_URL = 'https://api.aednow.online/api'; 
 
 
 
