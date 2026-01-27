@@ -1,0 +1,446 @@
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import * as Location from "expo-location";
+import MapView, { Marker, Circle } from "react-native-maps";
+import MapViewDirections from "react-native-maps-directions";
+import {
+  View,
+  Alert,
+  StyleSheet,
+  ActivityIndicator,
+  Button,
+  Text,
+  TouchableOpacity,
+} from "react-native";
+import { useRouter } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
+
+interface AEDLocation {
+  id: string;
+  name: string;
+  latitude: number;
+  longitude: number;
+  address?: string;
+  operator?: string;
+  indoor?: boolean;
+  access?: string;
+  description?: string;
+  openingHours?: string;
+  lastCheckedAt?: string;
+}
+
+const API_BASE_URL = "https://api.aednow.online/api";
+const GOOGLE_MAPS_API_KEY = process.env.EXPO_PUBLIC_GOOGLE_MAPS_KEY;
+const AED_RADIUS_METERS = 50_000;
+
+function getDistance(lat1: number, lon1: number, lat2: number, lon2: number) {
+  const R = 6371e3;
+  const toRad = (v: number) => (v * Math.PI) / 180;
+
+  const dLat = toRad(lat2 - lat1);
+  const dLon = toRad(lon2 - lon1);
+
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(toRad(lat1)) *
+      Math.cos(toRad(lat2)) *
+      Math.sin(dLon / 2) ** 2;
+
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c;
+}
+
+const findNearestAED = (
+  userLocation: { latitude: number; longitude: number },
+  aedLocations: AEDLocation[]
+) => {
+  let nearestAED: AEDLocation | null = null;
+  let closestDistance = Infinity;
+
+  for (const aed of aedLocations) {
+    const distance = getDistance(
+      userLocation.latitude,
+      userLocation.longitude,
+      aed.latitude,
+      aed.longitude
+    );
+
+    if (distance < closestDistance) {
+      closestDistance = distance;
+      nearestAED = aed;
+    }
+  }
+
+  return nearestAED;
+};
+
+export default function HomeScreen() {
+  const router = useRouter();
+
+  const [userLocation, setUserLocation] = useState<{
+    latitude: number;
+    longitude: number;
+  } | null>(null);
+
+  const mapRef = useRef<MapView>(null);
+
+  const [nearestAED, setNearestAED] = useState<AEDLocation | null>(null);
+  const [showSheet, setShowSheet] = useState(false);
+  const [aedLocations, setAedLocations] = useState<AEDLocation[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  // Fetch AED locations from backend
+  useEffect(() => {
+    const fetchAEDLocations = async () => {
+      try {
+        const response = await fetch(`${API_BASE_URL}/aedlocations`);
+        const data = await response.json();
+
+        if (data?.success) {
+          setAedLocations(data.data);
+        } else {
+          Alert.alert("Error", "Failed to fetch AED locations");
+        }
+      } catch (error) {
+        console.error("Error fetching AED locations:", error);
+        Alert.alert("Error", "Could not connect to server");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchAEDLocations();
+  }, []);
+
+  // Live location tracking
+  useEffect(() => {
+    let subscription: Location.LocationSubscription | null = null;
+
+    (async () => {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+
+      if (status !== "granted") {
+        Alert.alert(
+          "Permission denied",
+          "We need your location to find nearby AEDs."
+        );
+        return;
+      }
+
+      try {
+        await Location.enableNetworkProviderAsync();
+
+        subscription = await Location.watchPositionAsync(
+          {
+            accuracy: Location.Accuracy.Highest,
+            timeInterval: 1000,
+            distanceInterval: 1,
+          },
+          (location) => {
+            setUserLocation({
+              latitude: location.coords.latitude,
+              longitude: location.coords.longitude,
+            });
+          }
+        );
+      } catch (err) {
+        console.log("LOCATION ERROR:", err);
+        Alert.alert("Location Error", JSON.stringify(err, null, 2));
+      }
+    })();
+
+    return () => {
+      subscription?.remove();
+    };
+  }, []);
+
+  // Filter AEDs inside 50km radius
+  const aedsWithinRadius = useMemo(() => {
+    if (!userLocation) return [];
+    return aedLocations.filter((aed) => {
+      const d = getDistance(
+        userLocation.latitude,
+        userLocation.longitude,
+        aed.latitude,
+        aed.longitude
+      );
+      return d <= AED_RADIUS_METERS;
+    });
+  }, [userLocation, aedLocations]);
+
+  // Update nearest AED (within 50km)
+  useEffect(() => {
+    if (userLocation && aedsWithinRadius.length > 0) {
+      const nearest = findNearestAED(userLocation, aedsWithinRadius);
+      setNearestAED(nearest);
+    } else {
+      setNearestAED(null);
+    }
+  }, [userLocation, aedsWithinRadius]);
+
+  const handleFindNearestAED = () => {
+    if (!userLocation || aedsWithinRadius.length === 0) return;
+
+    const nearest = findNearestAED(userLocation, aedsWithinRadius);
+    if (!nearest) return;
+
+    setNearestAED(nearest);
+
+    mapRef.current?.animateToRegion(
+      {
+        latitude: nearest.latitude,
+        longitude: nearest.longitude,
+        latitudeDelta: 0.005,
+        longitudeDelta: 0.005,
+      },
+      1000
+    );
+  };
+
+  // If key missing, directions won't work (map still loads)
+  useEffect(() => {
+    if (!GOOGLE_MAPS_API_KEY) {
+      console.warn(
+        "Missing EXPO_PUBLIC_GOOGLE_MAPS_KEY. Add it to your .env to enable directions."
+      );
+    }
+  }, []);
+
+  if (!userLocation || loading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" />
+      </View>
+    );
+  }
+
+  return (
+    <View style={styles.container}>
+      <View style={styles.header}>
+        {/* ✅ Profile icon on LEFT */}
+        <TouchableOpacity
+          style={styles.profileButton}
+          onPress={() => router.push("/profile")}
+          activeOpacity={0.8}
+        >
+          <Ionicons name="person-circle-outline" size={34} color="white" />
+        </TouchableOpacity>
+
+        <Text style={styles.headerTitle}>Nearby AEDs</Text>
+        <Text style={styles.headerSubtitle}>
+          Live defibrillator locations near you
+        </Text>
+      </View>
+
+      {nearestAED && (
+        <TouchableOpacity
+          style={styles.aedInfoContainer}
+          onPress={() => setShowSheet(true)}
+          activeOpacity={0.8}
+        >
+          <View style={styles.aedInfoBox}>
+            <View style={{ flexDirection: "row", alignItems: "center" }}>
+              <View
+                style={{
+                  width: 12,
+                  height: 12,
+                  borderRadius: 6,
+                  backgroundColor: "green",
+                  marginRight: 8,
+                }}
+              />
+              <Text style={styles.aedName}>{nearestAED.name}</Text>
+            </View>
+            {nearestAED.address && (
+              <Text style={styles.aedStatus}>{nearestAED.address}</Text>
+            )}
+          </View>
+        </TouchableOpacity>
+      )}
+
+      <MapView
+        ref={mapRef}
+        provider="google"
+        style={styles.map}
+        showsUserLocation={true}
+        followsUserLocation={true}
+        initialRegion={{
+          latitude: userLocation.latitude,
+          longitude: userLocation.longitude,
+          latitudeDelta: 0.6,
+          longitudeDelta: 0.6,
+        }}
+      >
+        <Marker coordinate={userLocation} title="You are here" />
+
+        <Circle
+          center={userLocation}
+          radius={AED_RADIUS_METERS}
+          strokeWidth={2}
+          strokeColor="rgba(6, 152, 100, 0.9)"
+          fillColor="rgba(6, 152, 100, 0.12)"
+        />
+
+        {aedsWithinRadius.map((aed) => (
+          <Marker
+            key={aed.id}
+            coordinate={{ latitude: aed.latitude, longitude: aed.longitude }}
+            title={aed.name}
+            description={aed.address}
+          />
+        ))}
+
+        {nearestAED && GOOGLE_MAPS_API_KEY ? (
+          <MapViewDirections
+            origin={userLocation}
+            destination={{
+              latitude: nearestAED.latitude,
+              longitude: nearestAED.longitude,
+            }}
+            apikey={GOOGLE_MAPS_API_KEY}
+            strokeWidth={4}
+            strokeColor="#2ecc71"
+          />
+        ) : null}
+      </MapView>
+
+      <View style={styles.buttonContainer}>
+        <Button
+          title="Find Nearest AED"
+          onPress={handleFindNearestAED}
+          color="#069864"
+        />
+      </View>
+
+      {showSheet && nearestAED && (
+        <View style={styles.bottomSheet}>
+          <Text style={styles.aedName}>{nearestAED.name}</Text>
+          {nearestAED.address && <Text>Address: {nearestAED.address}</Text>}
+          {nearestAED.operator && <Text>Operator: {nearestAED.operator}</Text>}
+          {nearestAED.access && <Text>Access: {nearestAED.access}</Text>}
+          {nearestAED.openingHours && (
+            <Text>Hours: {nearestAED.openingHours}</Text>
+          )}
+          <Text>Latitude: {nearestAED.latitude}</Text>
+          <Text>Longitude: {nearestAED.longitude}</Text>
+
+          <View style={{ marginTop: 20 }}>
+            <Button
+              title="Close"
+              onPress={() => setShowSheet(false)}
+              color="#e5383b"
+            />
+          </View>
+        </View>
+      )}
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: { flex: 1 },
+
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+
+  map: {
+    width: "100%",
+    height: "100%",
+  },
+
+  buttonContainer: {
+    position: "absolute",
+    bottom: 40,
+    left: 20,
+    right: 20,
+  },
+
+  header: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+
+    backgroundColor: "#e5383b",
+    paddingTop: 60,
+    paddingBottom: 20,
+    borderBottomLeftRadius: 32,
+    borderBottomRightRadius: 32,
+
+    zIndex: 5,
+    elevation: 5,
+
+    shadowColor: "#000",
+    shadowOpacity: 0.25,
+    shadowRadius: 10,
+  },
+
+  // ✅ button placed on the left side of header
+  profileButton: {
+    position: "absolute",
+    left: 16,
+    top: 54, // adjust if you want higher/lower
+    zIndex: 20,
+  },
+
+  headerTitle: {
+    color: "white",
+    fontSize: 22,
+    fontWeight: "bold",
+    textAlign: "center",
+  },
+
+  headerSubtitle: {
+    color: "#ffecec",
+    textAlign: "center",
+    marginTop: 6,
+  },
+
+  aedInfoContainer: {
+    position: "absolute",
+    top: 150,
+    left: 20,
+    right: 20,
+    zIndex: 10,
+  },
+
+  aedInfoBox: {
+    backgroundColor: "white",
+    padding: 12,
+    borderRadius: 10,
+    width: "100%",
+    shadowColor: "#000",
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 5,
+  },
+
+  aedName: {
+    fontSize: 16,
+    fontWeight: "bold",
+  },
+
+  aedStatus: {
+    marginTop: 4,
+    fontSize: 14,
+    opacity: 0.7,
+  },
+
+  bottomSheet: {
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: "40%",
+    backgroundColor: "#fff",
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    padding: 20,
+    elevation: 10,
+    shadowColor: "#000",
+    shadowOpacity: 0.25,
+    shadowRadius: 5,
+  },
+});
