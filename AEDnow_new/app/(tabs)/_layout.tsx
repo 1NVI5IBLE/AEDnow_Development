@@ -1,54 +1,67 @@
-import { Tabs } from 'expo-router';
-import React from 'react';
-
-import { HapticTab } from '@/components/haptic-tab';
-import { IconSymbol } from '@/components/ui/icon-symbol';
-import { Colors } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import React from "react";
+import { Platform } from "react-native";
+import { Tabs } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
+import { HapticTab } from "@/components/haptic-tab";
 
 export default function TabLayout() {
-  const colorScheme = useColorScheme();
-
   return (
     <Tabs
       screenOptions={{
         headerShown: false,
         tabBarButton: HapticTab,
-
-        
         tabBarActiveTintColor: "#e5383b",
         tabBarInactiveTintColor: "#e5383b",
-
-        
-        tabBarLabelStyle: {
-          color: "#e5383b",
-          fontWeight: "600",
+        tabBarLabelStyle: { fontWeight: "600", fontSize: 12 },
+        tabBarStyle: {
+          height: Platform.OS === "ios" ? 80 : 68,
+          paddingTop: 8,
+          paddingBottom: Platform.OS === "ios" ? 20 : 10,
         },
       }}
     >
       <Tabs.Screen
         name="index"
         options={{
-          title: 'Map',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="house.fill" color={color} />,
+          title: "Map",
+          tabBarIcon: ({ color, focused }) => (
+            <Ionicons
+              name={focused ? "home" : "home-outline"}
+              size={26}
+              color={color}
+            />
+          ),
         }}
       />
+
       <Tabs.Screen
         name="explore"
         options={{
-          title: 'CPR Guide',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="paperplane.fill" color={color} />,
+          title: "CPR Guide",
+          tabBarIcon: ({ color, focused }) => (
+            <Ionicons
+              name={focused ? "play" : "play-outline"}
+              size={26}
+              color={color}
+            />
+          ),
         }}
       />
+
+      {/* BEST BUILT-IN TRIANGLE */}
       <Tabs.Screen
-        name="instructions"
+        name="training"
         options={{
-          title: "Instructions",
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="book.fill" color={color} />
-    
-      }}
-    />
- 
+          title: "training",
+          tabBarIcon: ({ color, focused }) => (
+            <Ionicons
+              name={focused ? "caret-up" : "caret-up-outline"}
+              size={22}
+              color={color}
+            />
+          ),
+        }}
+      />
     </Tabs>
   );
 }

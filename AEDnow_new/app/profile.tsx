@@ -190,7 +190,7 @@ export default function ProfileScreen() {
           value={security.hideSensitiveUI}
           onValueChange={(v) => setSecurity((s) => ({ ...s, hideSensitiveUI: v }))}
         />
-        <InfoBox text="For CA2 evidence: mention OWASP Mobile Top 10, secure key storage, and least-privilege permissions." />
+     
       </Section>
 
       {/* ABOUT */}

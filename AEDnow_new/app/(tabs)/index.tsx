@@ -304,11 +304,9 @@ export default function HomeScreen() {
       </MapView>
 
       <View style={styles.buttonContainer}>
-        <Button
-          title="Find Nearest AED"
-          onPress={handleFindNearestAED}
-          color="#069864"
-        />
+      <TouchableOpacity style={styles.findBtn} onPress={handleFindNearestAED} activeOpacity={0.85}>
+  <Text style={styles.findBtnText}>FIND NEAREST AED</Text>
+</TouchableOpacity>
       </View>
 
       {showSheet && nearestAED && (
@@ -427,7 +425,22 @@ const styles = StyleSheet.create({
     fontSize: 14,
     opacity: 0.7,
   },
-
+  findBtn: {
+    backgroundColor: "#069864",
+    paddingVertical: 14,
+    borderRadius: 10,
+    alignItems: "center",
+    justifyContent: "center",
+    shadowColor: "#000",
+    shadowOpacity: 0.2,
+    shadowRadius: 6,
+    elevation: 4, // Android shadow
+  },
+  findBtnText: {
+    color: "white",
+    fontWeight: "800",
+    letterSpacing: 0.6,
+  },
   bottomSheet: {
     position: "absolute",
     bottom: 0,
