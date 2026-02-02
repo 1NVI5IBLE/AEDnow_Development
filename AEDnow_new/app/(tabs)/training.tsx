@@ -1,19 +1,54 @@
-import { useEffect, useRef, useState } from "react";
-import { View, Text, StyleSheet, TouchableOpacity, Vibration } from "react-native";
 import { Audio } from "expo-av";
-import { Animated, Easing } from "react-native";
+import { useEffect, useRef, useState } from "react";
+import {
+  Animated,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  Vibration,
+  View,
+} from "react-native";
 
-const BPM_INTERVAL = 600; // 110 BPM ≈ 545–600ms
-const TIMING_WINDOW = 120; // ms allowed early/late
+/* ================= CONFIG ================= */
+
+const TARGET_BPM = 110;
+const MIN_BPM = 100;
+const MAX_BPM = 120;
+
+const BPM_INTERVAL = 60000 / TARGET_BPM;
+const MAX_SAMPLES = 5; // taps to average
+
+/* ================= SCREEN ================= */
 
 export default function TrainingScreen() {
   const beepSound = useRef<Audio.Sound | null>(null);
-  const beatTimeRef = useRef<number | null>(null);
   const intervalRef = useRef<number | null>(null);
+
+  const lastTapRef = useRef<number | null>(null);
+  const tapBpmsRef = useRef<number[]>([]);
+  const goodStreakRef = useRef(0);
 
   const [feedback, setFeedback] = useState("Tap with the beat");
   const [running, setRunning] = useState(false);
 
+  const pulseAnim = useRef(new Animated.Value(1)).current;
+
+  /* ================= VISUAL PULSE ================= */
+
+  const pulseOnce = () => {
+    Animated.sequence([
+      Animated.timing(pulseAnim, {
+        toValue: 1.1,
+        duration: BPM_INTERVAL / 2,
+        useNativeDriver: true,
+      }),
+      Animated.timing(pulseAnim, {
+        toValue: 1,
+        duration: BPM_INTERVAL / 2,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  };
 
   /* ================= METRONOME ================= */
 
@@ -25,17 +60,22 @@ export default function TrainingScreen() {
     });
 
     const { sound } = await Audio.Sound.createAsync(
-      require("../../assets/images/sounds/beep.mp3")
+      require("../../assets/images/sounds/beep.mp3"),
+      { shouldPlay: false },
     );
 
     await sound.setVolumeAsync(1.0);
     beepSound.current = sound;
 
     intervalRef.current = setInterval(() => {
-      beatTimeRef.current = Date.now();
       beepSound.current?.replayAsync().catch(() => {});
       Vibration.vibrate(40);
+      pulseOnce();
     }, BPM_INTERVAL);
+
+    lastTapRef.current = null;
+    tapBpmsRef.current = [];
+    goodStreakRef.current = 0;
 
     setRunning(true);
   };
@@ -47,12 +87,17 @@ export default function TrainingScreen() {
     }
 
     if (beepSound.current) {
-      await beepSound.current.stopAsync();
-      await beepSound.current.unloadAsync();
+      try {
+        await beepSound.current.stopAsync();
+        await beepSound.current.unloadAsync();
+      } catch {}
       beepSound.current = null;
     }
 
-    beatTimeRef.current = null;
+    lastTapRef.current = null;
+    tapBpmsRef.current = [];
+    goodStreakRef.current = 0;
+
     setRunning(false);
     setFeedback("Tap with the beat");
   };
@@ -60,18 +105,48 @@ export default function TrainingScreen() {
   /* ================= TAP HANDLER ================= */
 
   const handleTap = () => {
-    if (!beatTimeRef.current) return;
-
     const now = Date.now();
-    const diff = now - beatTimeRef.current;
 
-    if (Math.abs(diff) <= TIMING_WINDOW) {
-      setFeedback("✅ Good rhythm");
-    } else if (diff < -TIMING_WINDOW) {
-      setFeedback("⬆️ Too fast");
-    } else {
-      setFeedback("⬇️ Too slow");
+    if (lastTapRef.current) {
+      const interval = now - lastTapRef.current;
+
+      // Ignore accidental double taps
+      if (interval < 250 || interval > 1000) {
+        lastTapRef.current = now;
+        return;
+      }
+
+      const bpm = 60000 / interval;
+      tapBpmsRef.current.push(bpm);
+
+      if (tapBpmsRef.current.length > MAX_SAMPLES) {
+        tapBpmsRef.current.shift();
+      }
+
+      const avgBpm =
+        tapBpmsRef.current.reduce((a, b) => a + b, 0) /
+        tapBpmsRef.current.length;
+
+      if (avgBpm >= MIN_BPM && avgBpm <= MAX_BPM) {
+        goodStreakRef.current += 1;
+
+        if (goodStreakRef.current >= 4) {
+          setFeedback(`🔥 Rhythm locked in (${Math.round(avgBpm)} BPM)`);
+        } else {
+          setFeedback(`✅ Good rhythm (${Math.round(avgBpm)} BPM)`);
+        }
+      } else {
+        goodStreakRef.current = 0;
+
+        if (avgBpm > MAX_BPM) {
+          setFeedback(`⬆️ A bit fast (${Math.round(avgBpm)} BPM)`);
+        } else {
+          setFeedback(`⬇️ A bit slow (${Math.round(avgBpm)} BPM)`);
+        }
+      }
     }
+
+    lastTapRef.current = now;
   };
 
   /* ================= CLEANUP ================= */
@@ -92,14 +167,16 @@ export default function TrainingScreen() {
         Practice chest compressions by tapping with the beat.
       </Text>
 
-      <TouchableOpacity
-        style={[styles.tapButton, !running && styles.tapButtonDisabled]}
-        onPress={handleTap}
-        activeOpacity={0.8}
-        disabled={!running}
-      >
-        <Text style={styles.tapText}>TAP</Text>
-      </TouchableOpacity>
+      <Animated.View style={{ transform: [{ scale: pulseAnim }] }}>
+        <TouchableOpacity
+          style={[styles.tapButton, !running && styles.tapButtonDisabled]}
+          onPress={handleTap}
+          activeOpacity={0.8}
+          disabled={!running}
+        >
+          <Text style={styles.tapText}>TAP</Text>
+        </TouchableOpacity>
+      </Animated.View>
 
       <Text style={styles.feedback}>{feedback}</Text>
 
@@ -165,6 +242,7 @@ const styles = StyleSheet.create({
   feedback: {
     fontSize: 16,
     marginBottom: 30,
+    textAlign: "center",
   },
 
   controlButton: {
