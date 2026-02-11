@@ -71,6 +71,8 @@ const findNearestAED = (
 };
 
 export default function HomeScreen() {
+  const [eta, setEta] = useState<number | null>(null);
+  const [distance, setDistanceKm] = useState<number | null>(null);
   const [travelMode, setTravelMode] = useState<"DRIVING" | "WALKING">(
     "DRIVING",
   );
@@ -264,9 +266,21 @@ export default function HomeScreen() {
             strokeWidth={4}
             strokeColor="#2ecc71"
             mode={travelMode}
+            onReady={(result) => {
+              setEta(result.duration);
+              setDistanceKm(result.distance);
+            }}
           />
         )}
       </MapView>
+
+      {eta && (
+        <View style={styles.etaContainer}>
+          <Text style={styles.etaText}>
+            {Math.round(eta)} min • {distance?.toFixed(2)} km
+          </Text>
+        </View>
+      )}
 
       {/* Travel Mode Segmented Control */}
       <View style={styles.segmentedContainer}>
@@ -475,5 +489,25 @@ const styles = StyleSheet.create({
 
   activeSegmentText: {
     color: "#fff",
+  },
+
+  etaText: {
+    fontWeight: "600",
+    fontSize: 14,
+    color: "#222",
+  },
+
+  etaContainer: {
+    position: "absolute",
+    bottom: 165,
+    alignSelf: "center",
+    backgroundColor: "rgba(255,255,255,0.95)",
+    paddingVertical: 6,
+    paddingHorizontal: 18,
+    borderRadius: 25,
+    elevation: 2,
+    shadowColor: "#000",
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
   },
 });
