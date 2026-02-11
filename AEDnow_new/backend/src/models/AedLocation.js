@@ -45,7 +45,7 @@ const aedLocationSchema = new mongoose.Schema({
     required: false
   }
 }, {
-  collection: 'aedlocations'
+  collection: 'aed_clean_normalized_stand_dates_with_validation'
 });
 
 // Create a 2dsphere index for geospatial queries
