@@ -1,13 +1,16 @@
-import { useEffect, useState } from 'react';
-import * as Location from 'expo-location';
-import MapView, { Marker } from 'react-native-maps';
-import MapViewDirections from 'react-native-maps-directions';
-import { View, Alert, StyleSheet, ActivityIndicator, Button, Text, TouchableOpacity} from "react-native";
-import { Image } from 'react-native';
-import {useRef} from 'react';
-
-
-
+import * as Location from "expo-location";
+import { useEffect, useRef, useState } from "react";
+import {
+  ActivityIndicator,
+  Alert,
+  Button,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
+import MapView, { Marker } from "react-native-maps";
+import MapViewDirections from "react-native-maps-directions";
 
 interface AEDLocation {
   id: string;
@@ -25,30 +28,28 @@ interface AEDLocation {
 
 // For local development, use: 'http://10.0.2.2:3000/api'
 // For production with AWS, use: 'https://api.aednow.online/api'
-const API_BASE_URL = 'https://api.aednow.online/api'; 
-
-
+const API_BASE_URL = "https://api.aednow.online/api";
 
 function getDistance(lat1: number, lon1: number, lat2: number, lon2: number) {
   const R = 6371e3;
-  const toRad = (v: number) => v * Math.PI / 180;
+  const toRad = (v: number) => (v * Math.PI) / 180;
 
   const dLat = toRad(lat2 - lat1);
   const dLon = toRad(lon2 - lon1);
 
   const a =
     Math.sin(dLat / 2) ** 2 +
-    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) *
-    Math.sin(dLon / 2) ** 2;
+    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) ** 2;
 
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 
   return R * c;
 }
 
-
-
-const findNearestAED = (userLocation: { latitude: number; longitude: number }, aedLocations: AEDLocation[]) => {
+const findNearestAED = (
+  userLocation: { latitude: number; longitude: number },
+  aedLocations: AEDLocation[],
+) => {
   let nearestAED = null;
   let closestDistance = Infinity;
 
@@ -57,7 +58,7 @@ const findNearestAED = (userLocation: { latitude: number; longitude: number }, a
       userLocation.latitude,
       userLocation.longitude,
       aed.latitude,
-      aed.longitude
+      aed.longitude,
     );
 
     if (distance < closestDistance) {
@@ -69,10 +70,14 @@ const findNearestAED = (userLocation: { latitude: number; longitude: number }, a
   return nearestAED;
 };
 
-
-
 export default function HomeScreen() {
-  const [userLocation, setUserLocation] = useState<{ latitude: number; longitude: number } | null>(null);
+  const [travelMode, setTravelMode] = useState<"DRIVING" | "WALKING">(
+    "DRIVING",
+  );
+  const [userLocation, setUserLocation] = useState<{
+    latitude: number;
+    longitude: number;
+  } | null>(null);
   const mapRef = useRef<MapView>(null);
   const [nearestAED, setNearestAED] = useState<any>(null);
   const [showSheet, setShowSheet] = useState(false);
@@ -85,15 +90,15 @@ export default function HomeScreen() {
       try {
         const response = await fetch(`${API_BASE_URL}/aedlocations`);
         const data = await response.json();
-        
+
         if (data.success) {
           setAedLocations(data.data);
         } else {
-          Alert.alert('Error', 'Failed to fetch AED locations');
+          Alert.alert("Error", "Failed to fetch AED locations");
         }
       } catch (error) {
-        console.error('Error fetching AED locations:', error);
-        Alert.alert('Error', 'Could not connect to server');
+        console.error("Error fetching AED locations:", error);
+        Alert.alert("Error", "Could not connect to server");
       } finally {
         setLoading(false);
       }
@@ -102,56 +107,52 @@ export default function HomeScreen() {
     fetchAEDLocations();
   }, []);
 
-useEffect(() => {
-  (async () => {
-    let { status } = await Location.requestForegroundPermissionsAsync();
+  useEffect(() => {
+    (async () => {
+      let { status } = await Location.requestForegroundPermissionsAsync();
 
-    if (status !== 'granted') {
-      Alert.alert("Permission denied", "We need your location to find nearby AEDs.");
-      return;
+      if (status !== "granted") {
+        Alert.alert(
+          "Permission denied",
+          "We need your location to find nearby AEDs.",
+        );
+        return;
+      }
+
+      try {
+        await Location.enableNetworkProviderAsync();
+
+        const subscription = await Location.watchPositionAsync(
+          {
+            accuracy: Location.Accuracy.Highest,
+            timeInterval: 1000,
+            distanceInterval: 1,
+          },
+          (location) => {
+            console.log("LIVE LOCATION:", location);
+            setUserLocation({
+              latitude: location.coords.latitude,
+              longitude: location.coords.longitude,
+            });
+          },
+        );
+
+        return () => subscription.remove();
+      } catch (err) {
+        console.log("LOCATION ERROR:", err);
+        Alert.alert("Location Error", JSON.stringify(err, null, 2));
+      }
+    })();
+  }, []);
+
+  useEffect(() => {
+    if (userLocation && aedLocations.length > 0) {
+      const nearest = findNearestAED(userLocation, aedLocations);
+      setNearestAED(nearest);
     }
+  }, [userLocation, aedLocations]);
 
-    try {
-      await Location.enableNetworkProviderAsync();
-
-      
-      const subscription = await Location.watchPositionAsync(
-        {
-          accuracy: Location.Accuracy.Highest,
-          timeInterval: 1000,   
-          distanceInterval: 1, 
-        },
-        (location) => {
-          console.log("LIVE LOCATION:", location);
-          setUserLocation({
-            latitude: location.coords.latitude,
-            longitude: location.coords.longitude,
-          });
-        }
-      );
-
-      
-      return () => subscription.remove();
-
-    } catch (err) {
-      console.log("LOCATION ERROR:", err);
-      Alert.alert("Location Error", JSON.stringify(err, null, 2));
-    }
-  })();
-}, []);
-
-
-
-
-useEffect(() => {
-  if (userLocation && aedLocations.length > 0) {
-    const nearest = findNearestAED(userLocation, aedLocations);
-    setNearestAED(nearest);
-  }
-}, [userLocation, aedLocations]);
-
-
-  // Optional: 
+  // Optional:
   // useEffect(() => {
   //   const subscription = Location.watchPositionAsync(
   //     { accuracy: Location.Accuracy.Highest, distanceInterval: 2 },
@@ -181,11 +182,9 @@ useEffect(() => {
         latitudeDelta: 0.005,
         longitudeDelta: 0.005,
       },
-      1000
+      1000,
     );
-  }
-
-
+  };
 
   if (!userLocation || loading) {
     return (
@@ -197,13 +196,15 @@ useEffect(() => {
 
   return (
     <View style={styles.container}>
-      <View style = {styles.header}>
+      <View style={styles.header}>
         <Text style={styles.headerTitle}>Nearby AEDs</Text>
-        <Text style={styles.headerSubtitle}>Live defibrillator locations near you</Text>
+        <Text style={styles.headerSubtitle}>
+          Live defibrillator locations near you
+        </Text>
       </View>
 
       {nearestAED && (
-        <TouchableOpacity 
+        <TouchableOpacity
           style={styles.aedInfoContainer}
           onPress={() => setShowSheet(true)}
           activeOpacity={0.8}
@@ -228,11 +229,8 @@ useEffect(() => {
         </TouchableOpacity>
       )}
 
-
-
-
       <MapView
-      ref={mapRef}
+        ref={mapRef}
         provider="google"
         style={styles.map}
         showsUserLocation={true}
@@ -244,7 +242,6 @@ useEffect(() => {
           longitudeDelta: 0.01,
         }}
       >
-     
         <Marker coordinate={userLocation} title="You are here" />
 
         {aedLocations.map((aed) => (
@@ -256,7 +253,6 @@ useEffect(() => {
           />
         ))}
 
-       
         {nearestAED && (
           <MapViewDirections
             origin={userLocation}
@@ -267,94 +263,142 @@ useEffect(() => {
             apikey="AIzaSyAsbwoWpdZ61S0x870J_S0E9NPNMx2IvuE"
             strokeWidth={4}
             strokeColor="#2ecc71"
+            mode={travelMode}
           />
         )}
-
-
       </MapView>
-      <View style={styles.buttonContainer}>
-            <Button title="Find Nearest AED" onPress={handleFindNearestAED} color="#069864" />
+
+      {/* Travel Mode Segmented Control */}
+      <View style={styles.segmentedContainer}>
+        <TouchableOpacity
+          style={[
+            styles.segment,
+            travelMode === "DRIVING" && styles.activeSegment,
+          ]}
+          onPress={() => setTravelMode("DRIVING")}
+        >
+          <Text
+            style={[
+              styles.segmentText,
+              travelMode === "DRIVING" && styles.activeSegmentText,
+            ]}
+          >
+            Drive
+          </Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[
+            styles.segment,
+            travelMode === "WALKING" && styles.activeSegment,
+          ]}
+          onPress={() => setTravelMode("WALKING")}
+        >
+          <Text
+            style={[
+              styles.segmentText,
+              travelMode === "WALKING" && styles.activeSegmentText,
+            ]}
+          >
+            Walk
+          </Text>
+        </TouchableOpacity>
       </View>
 
-        {showSheet && nearestAED && (
-          <View style={styles.bottomSheet}>
-            <Text style={styles.aedName}>{nearestAED.name}</Text>
-            {nearestAED.address && <Text>Address: {nearestAED.address}</Text>}
-            {nearestAED.operator && <Text>Operator: {nearestAED.operator}</Text>}
-            {nearestAED.access && <Text>Access: {nearestAED.access}</Text>}
-            {nearestAED.openingHours && <Text>Hours: {nearestAED.openingHours}</Text>}
-            <Text>Latitude: {nearestAED.latitude}</Text>
-            <Text>Longitude: {nearestAED.longitude}</Text>
+      <View style={styles.buttonContainer}>
+        <View style={styles.roundedButtonWrapper}>
+          <Button
+            title="Find Nearest AED"
+            onPress={handleFindNearestAED}
+            color="#069864"
+          />
+        </View>
+      </View>
 
-            <View style={{ marginTop: 20 }}>
-              <Button title="Close" onPress={() => setShowSheet(false)} color="#e5383b" />
-            </View>
+      {showSheet && nearestAED && (
+        <View style={styles.bottomSheet}>
+          <Text style={styles.aedName}>{nearestAED.name}</Text>
+          {nearestAED.address && <Text>Address: {nearestAED.address}</Text>}
+          {nearestAED.operator && <Text>Operator: {nearestAED.operator}</Text>}
+          {nearestAED.access && <Text>Access: {nearestAED.access}</Text>}
+          {nearestAED.openingHours && (
+            <Text>Hours: {nearestAED.openingHours}</Text>
+          )}
+          <Text>Latitude: {nearestAED.latitude}</Text>
+          <Text>Longitude: {nearestAED.longitude}</Text>
+
+          <View style={{ marginTop: 20 }}>
+            <Button
+              title="Close"
+              onPress={() => setShowSheet(false)}
+              color="#e5383b"
+            />
           </View>
-        )}
-
+        </View>
+      )}
     </View>
-    
   );
 }
 
 /* ================= STYLES ================= */
 
-
 const styles = StyleSheet.create({
   container: { flex: 1 },
   loadingContainer: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
   },
   map: {
-    width: '100%',
-    height: '100%',
+    width: "100%",
+    height: "100%",
   },
   buttonContainer: {
-    position: 'absolute',
+    position: "absolute",
     bottom: 40,
     left: 20,
     right: 20,
-    
   },
 
+  roundedButtonWrapper: {
+    borderRadius: 30,
+    overflow: "hidden", // 👈 THIS makes the rounding actually work
+  },
 
   header: {
-  position: "absolute",
-  top: 0,
-  left: 0,
-  right: 0,
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
 
-  backgroundColor: "#e5383b",
-  paddingTop: 60,
-  paddingBottom: 20,        // 👈 makes it “come down”
-  borderBottomLeftRadius: 32,
-  borderBottomRightRadius: 32,
+    backgroundColor: "#e5383b",
+    paddingTop: 60,
+    paddingBottom: 20, // 👈 makes it “come down”
+    borderBottomLeftRadius: 32,
+    borderBottomRightRadius: 32,
 
-  zIndex: 5,                // 👈 below AED box
-  elevation: 5,
+    zIndex: 5, // 👈 below AED box
+    elevation: 5,
 
-  shadowColor: "#000",
-  shadowOpacity: 0.25,
-  shadowRadius: 10,
-},
+    shadowColor: "#000",
+    shadowOpacity: 0.25,
+    shadowRadius: 10,
+  },
 
-headerTitle: {
-  color: "white",
-  fontSize: 22,
-  fontWeight: "bold",
-  textAlign: "center",
-},
+  headerTitle: {
+    color: "white",
+    fontSize: 22,
+    fontWeight: "bold",
+    textAlign: "center",
+  },
 
-headerSubtitle: {
-  color: "#ffecec",
-  textAlign: "center",
-  marginTop: 6,
-},
+  headerSubtitle: {
+    color: "#ffecec",
+    textAlign: "center",
+    marginTop: 6,
+  },
 
-
-   aedInfoContainer: {
+  aedInfoContainer: {
     position: "absolute",
     top: 150,
     left: 20,
@@ -385,19 +429,51 @@ headerSubtitle: {
   },
 
   bottomSheet: {
-  position: "absolute",
-  bottom: 0,
-  left: 0,
-  right: 0,
-  height: "40%",   
-  backgroundColor: "#fff",
-  borderTopLeftRadius: 20,
-  borderTopRightRadius: 20,
-  padding: 20,
-  elevation: 10,
-  shadowColor: "#000",
-  shadowOpacity: 0.25,
-  shadowRadius: 5,
-},
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: "40%",
+    backgroundColor: "#fff",
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    padding: 20,
+    elevation: 10,
+    shadowColor: "#000",
+    shadowOpacity: 0.25,
+    shadowRadius: 5,
+  },
 
+  segmentedContainer: {
+    position: "absolute",
+    bottom: 100,
+    alignSelf: "center",
+    flexDirection: "row",
+    backgroundColor: "rgba(255,255,255,0.95)",
+    borderRadius: 25,
+    padding: 4,
+    elevation: 6,
+    shadowColor: "#000",
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+  },
+
+  segment: {
+    paddingVertical: 8,
+    paddingHorizontal: 20,
+    borderRadius: 20,
+  },
+
+  activeSegment: {
+    backgroundColor: "#069864",
+  },
+
+  segmentText: {
+    fontWeight: "600",
+    color: "#555",
+  },
+
+  activeSegmentText: {
+    color: "#fff",
+  },
 });
