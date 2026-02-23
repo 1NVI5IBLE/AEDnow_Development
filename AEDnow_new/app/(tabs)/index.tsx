@@ -4,6 +4,7 @@ import {
   ActivityIndicator,
   Alert,
   Button,
+  Image,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -11,6 +12,8 @@ import {
 } from "react-native";
 import MapView, { Marker } from "react-native-maps";
 import MapViewDirections from "react-native-maps-directions";
+
+const greenMarker = require("../../assets/images/markers/green_marker.png");
 
 interface AEDLocation {
   id: string;
@@ -252,7 +255,13 @@ export default function HomeScreen() {
             coordinate={{ latitude: aed.latitude, longitude: aed.longitude }}
             title={aed.name}
             description={aed.address}
-          />
+          >
+            <Image
+              source={greenMarker}
+              style={{ width: 40, height: 40 }}
+              resizeMode="contain"
+            />
+          </Marker>
         ))}
 
         {nearestAED && (
@@ -376,7 +385,7 @@ const styles = StyleSheet.create({
 
   roundedButtonWrapper: {
     borderRadius: 30,
-    overflow: "hidden", // 👈 THIS makes the rounding actually work
+    overflow: "hidden",
   },
 
   header: {
@@ -387,11 +396,11 @@ const styles = StyleSheet.create({
 
     backgroundColor: "#e5383b",
     paddingTop: 60,
-    paddingBottom: 20, // 👈 makes it “come down”
+    paddingBottom: 20,
     borderBottomLeftRadius: 32,
     borderBottomRightRadius: 32,
 
-    zIndex: 5, // 👈 below AED box
+    zIndex: 5,
     elevation: 5,
 
     shadowColor: "#000",
