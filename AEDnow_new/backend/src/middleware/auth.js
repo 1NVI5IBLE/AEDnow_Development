@@ -1,4 +1,8 @@
 // Authentication middleware example
+
+
+const jwt = require('jsonwebtoken');
+
 const authMiddleware = (req, res, next) => {
   try {
     // Get token from header
@@ -8,9 +12,9 @@ const authMiddleware = (req, res, next) => {
       return res.status(401).json({ error: 'No authentication token provided' });
     }
 
-    // Verify token (implement your JWT verification logic here)
-    // const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    // req.user = decoded;
+    //verify JWT
+    const decoded = jwt.verify(token,process.env.JWT_SECRET);
+    req.admin = decoded;
 
     next();
   } catch (error) {

@@ -1,4 +1,5 @@
 const express = require('express');
+const authMiddleware = require('../middleware/auth');
 const router = express.Router();
 const aedLocationController = require('../controllers/aedLocationController');
 
@@ -10,5 +11,10 @@ router.get('/:id', aedLocationController.getLocationById);
 
 // GET nearby AED locations
 router.get('/nearby', aedLocationController.getNearbyLocations);
+
+//new routes
+router.post('/', authMiddleware, aedLocationController.createLocation);
+router.put('/:id', authMiddleware, aedLocationController.updateLocation);
+router.delete('/:id', authMiddleware, aedLocationController.deleteLocation);
 
 module.exports = router;
