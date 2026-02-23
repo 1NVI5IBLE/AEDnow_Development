@@ -126,6 +126,140 @@ const aedLocationController = {
       });
     }
   }
+
+  //create aed location
+  createLocation: async (req, res) => {
+    try {
+      const {
+        name,
+        address,
+        eircode,
+        indoor,
+        available,
+        latitude,
+        longitude
+      } = req.body;
+  
+      if (!name || !latitude || !longitude) {
+        return res.status(400).json({
+          success: false,
+          message: "Name, latitude and longitude are required"
+        });
+      }
+  
+      const newAed = await AedLocation.create({
+        name,
+        address,
+        eircode,
+        indoor,
+        available,
+        location: {
+          type: "Point",
+          coordinates: [parseFloat(longitude), parseFloat(latitude)]
+        }
+      });
+  
+      res.status(201).json({
+        success: true,
+        data: newAed
+      });
+  
+    } catch (error) {
+      console.error("Create error:", error);
+      res.status(500).json({
+        success: false,
+        error: error.message
+      });
+    }
+  },
+
+
+//update aed
+  updateLocation:async (req, res) => {
+    try {
+      const { id } = req.params;
+      const {
+        name,
+        address,
+        eircode,
+        indoor,
+        available,
+        latitude,
+        longitude
+      } = req.body;
+  
+      const updatedData = {
+        name,
+        address,
+        eircode,
+        indoor,
+        available
+      };
+  
+      if (latitude && longitude) {
+        updatedData.location = {
+          type: "Point",
+          coordinates: [parseFloat(longitude), parseFloat(latitude)]
+        };
+      }
+  
+      const updatedAed = await AedLocation.findByIdAndUpdate(
+        id,
+        updatedData,
+        { new: true }
+      );
+  
+      if (!updatedAed) {
+        return res.status(404).json({
+          success: false,
+          message: "AED not found"
+        });
+      }
+  
+      res.json({
+        success: true,
+        data: updatedAed
+      });
+  
+    } catch (error) {
+      console.error("Update error:", error);
+      res.status(500).json({
+        success: false,
+        error: error.message
+      });
+    }
+  },
+
+
+  //delete aed
+  deleteLocation: async (req, res) => {
+    try {
+      const { id } = req.params;
+  
+      const deletedAed = await AedLocation.findByIdAndDelete(id);
+  
+      if (!deletedAed) {
+        return res.status(404).json({
+          success: false,
+          message: "AED not found"
+        });
+      }
+  
+      res.json({
+        success: true,
+        message: "AED deleted"
+      });
+  
+    } catch (error) {
+      console.error("Delete error:", error);
+      res.status(500).json({
+        success: false,
+        error: error.message
+      });
+    }
+  },
+
+
 };
 
 module.exports = aedLocationController;
