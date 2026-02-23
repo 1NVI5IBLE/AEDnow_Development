@@ -3,6 +3,8 @@ const AedLocation = require('../models/AedLocation');
 const aedLocationController = {
   // GET all AED locations
   getAllLocations: async (req, res) => {
+    console.log("GET ALL AED LOCATIONS HIT");
+    
     try {
       const aedLocations = await AedLocation.find({});
       
@@ -125,7 +127,7 @@ const aedLocationController = {
         error: error.message
       });
     }
-  }
+  },
 
   //create aed location
   createLocation: async (req, res) => {

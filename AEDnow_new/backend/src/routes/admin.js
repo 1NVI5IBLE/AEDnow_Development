@@ -4,7 +4,7 @@ const jwt = require('jsonwebtoken');
 const Admin = require('../models/Admin');
 
 // JWT Secret - In production, move this to .env file
-const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-this-in-production';
+const JWT_SECRET = process.env.JWT_SECRET;
 
 // @route   POST /api/admin/login
 // @desc    Admin login
