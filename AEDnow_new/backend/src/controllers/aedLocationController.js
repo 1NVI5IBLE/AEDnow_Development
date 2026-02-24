@@ -132,7 +132,7 @@ const aedLocationController = {
   //create aed location
   createLocation: async (req, res) => {
     try {
-      const {
+      const {  //get data from frontend
         name,
         address,
         eircode,
@@ -142,13 +142,15 @@ const aedLocationController = {
         longitude
       } = req.body;
   
+      //validate required fields
       if (!name || !latitude || !longitude) {
-        return res.status(400).json({
+        return res.status(400).json({          //if missing return 400
           success: false,
           message: "Name, latitude and longitude are required"
         });
       }
-  
+      
+      //create aed in mongodb
       const newAed = await AedLocation.create({
         name,
         address,
@@ -160,7 +162,7 @@ const aedLocationController = {
           coordinates: [parseFloat(longitude), parseFloat(latitude)]
         }
       });
-  
+      ///send success response with new aed data to the frontend
       res.status(201).json({
         success: true,
         data: newAed
