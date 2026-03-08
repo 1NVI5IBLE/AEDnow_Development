@@ -1,9 +1,10 @@
 import * as Location from "expo-location";
-import { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
   Button,
+  Image,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -11,6 +12,10 @@ import {
 } from "react-native";
 import MapView, { Marker } from "react-native-maps";
 import MapViewDirections from "react-native-maps-directions";
+import { Ionicons } from "@expo/vector-icons";
+import { router } from "expo-router";
+
+const greenMarker = require("../../assets/images/markers/green_marker.png");
 
 interface AEDLocation {
   id: string;
@@ -199,6 +204,15 @@ export default function HomeScreen() {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
+      <TouchableOpacity
+          style={styles.profileButton}
+          onPress={() => router.push("/profile")}
+          activeOpacity={0.8}
+        >
+          <Ionicons name="person-circle-outline" size={34} color="white" />
+       
+        </TouchableOpacity>
+
         <Text style={styles.headerTitle}>Nearby AEDs</Text>
         <Text style={styles.headerSubtitle}>
           Live defibrillator locations near you
@@ -252,7 +266,13 @@ export default function HomeScreen() {
             coordinate={{ latitude: aed.latitude, longitude: aed.longitude }}
             title={aed.name}
             description={aed.address}
-          />
+          >
+            <Image
+              source={greenMarker}
+              style={{ width: 40, height: 40 }}
+              resizeMode="contain"
+            />
+          </Marker>
         ))}
 
         {nearestAED && (
@@ -262,7 +282,7 @@ export default function HomeScreen() {
               latitude: nearestAED.latitude,
               longitude: nearestAED.longitude,
             }}
-            apikey="AIzaSyAsbwoWpdZ61S0x870J_S0E9NPNMx2IvuE"
+            apikey="AIzaSyD-ck-9GJK5dahsYNGyM6GwINOWEk3LKqE"
             strokeWidth={4}
             strokeColor="#2ecc71"
             mode={travelMode}
@@ -320,14 +340,14 @@ export default function HomeScreen() {
       </View>
 
       <View style={styles.buttonContainer}>
-        <View style={styles.roundedButtonWrapper}>
-          <Button
-            title="Find Nearest AED"
-            onPress={handleFindNearestAED}
-            color="#069864"
-          />
-        </View>
-      </View>
+  <TouchableOpacity
+    style={styles.findButton}
+    onPress={handleFindNearestAED}
+    activeOpacity={0.85}
+  >
+    <Text style={styles.findButtonText}>Find Nearest AED</Text>
+  </TouchableOpacity>
+</View>
 
       {showSheet && nearestAED && (
         <View style={styles.bottomSheet}>
@@ -363,6 +383,12 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
+  profileButton: {
+    position: "absolute",
+    left: 16,
+    top: 54, // adjust if you want higher/lower
+    zIndex: 20,
+  },
   map: {
     width: "100%",
     height: "100%",
@@ -376,7 +402,7 @@ const styles = StyleSheet.create({
 
   roundedButtonWrapper: {
     borderRadius: 30,
-    overflow: "hidden", // 👈 THIS makes the rounding actually work
+    overflow: "hidden",
   },
 
   header: {
@@ -387,11 +413,11 @@ const styles = StyleSheet.create({
 
     backgroundColor: "#e5383b",
     paddingTop: 60,
-    paddingBottom: 20, // 👈 makes it “come down”
+    paddingBottom: 20,
     borderBottomLeftRadius: 32,
     borderBottomRightRadius: 32,
 
-    zIndex: 5, // 👈 below AED box
+    zIndex: 5,
     elevation: 5,
 
     shadowColor: "#000",
@@ -509,5 +535,25 @@ const styles = StyleSheet.create({
     shadowColor: "#000",
     shadowOpacity: 0.1,
     shadowRadius: 4,
+  },
+  findButton: {
+    backgroundColor: "#069864",
+    borderRadius: 30,
+    paddingVertical: 14,
+    alignItems: "center",
+    justifyContent: "center",
+  
+    // shadows
+    shadowColor: "#000",
+    shadowOpacity: 0.2,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 4,
+  },
+  
+  findButtonText: {
+    color: "#fff",
+    fontSize: 16,
+    fontWeight: "700",
   },
 });

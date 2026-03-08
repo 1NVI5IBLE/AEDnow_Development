@@ -13,11 +13,23 @@ export default function RootLayout() {
   const colorScheme = useColorScheme();
 
   return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+    <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
       <Stack>
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
+        {/* ✅ set a friendly title for the previous screen */}
+        <Stack.Screen name="(tabs)" options={{ headerShown: false, title: "Home" }} />
+
+        {/* ✅ add profile screen title + hide back title if you want */}
+        <Stack.Screen
+          name="profile"
+          options={{
+            title: "Profile",
+            headerBackTitleVisible: false, // hides "Home"/"(tabs)" text on iOS
+          }}
+        />
+
+        <Stack.Screen name="modal" options={{ presentation: "modal", title: "Modal" }} />
       </Stack>
+
       <StatusBar style="auto" />
     </ThemeProvider>
   );
