@@ -30,21 +30,18 @@ export default function CPRGuide() {
   const beepInterval = useRef<number | null>(null);
   const vibration_Duration = 60;
 
-  /* ================= 🔊 SPEECH FIX ================= */
-
   const stopSpeech = () => {
     Speech.stop();
   };
 
   const speakFullStep = (step: CPRStep) => {
-    stopSpeech(); // 🔴 important
+    Speech.stop();
     const text = `${step.title}. ${step.subtitle}. ${step.bullets.join(". ")}`;
     Speech.speak(text, {
       rate: 0.95,
+      pitch: 1.0,
     });
   };
-
-  /* ================= BEEP ================= */
 
   const startCPRBeep = async () => {
     if (beepInterval.current !== null) return;
@@ -81,8 +78,6 @@ export default function CPRGuide() {
     }
   };
 
-  /* ================= EFFECTS ================= */
-
   useEffect(() => {
     if (openStep === 5) {
       startCPRBeep();
@@ -90,7 +85,6 @@ export default function CPRGuide() {
       stopCPRBeep();
     }
 
-    // 🔴 stop speech whenever step changes
     stopSpeech();
 
     return () => {
@@ -98,8 +92,6 @@ export default function CPRGuide() {
       stopSpeech();
     };
   }, [openStep]);
-
-  /* ================= DATA ================= */
 
   const CPR_DATA: Record<CPRType, CPRStep[]> = {
     adult: [
@@ -246,8 +238,6 @@ export default function CPRGuide() {
     setOpenStep((prev) => (prev === id ? null : id));
   };
 
-  /* ================= UI ================= */
-
   return (
     <ScrollView
       style={styles.container}
@@ -277,15 +267,14 @@ export default function CPRGuide() {
           </TouchableOpacity>
         </View>
 
-        {/* TABS */}
         <View style={styles.tabsRow}>
           {["adult", "child", "baby"].map((tab) => (
             <TouchableOpacity
               key={tab}
               onPress={() => {
-                stopSpeech(); // 🔴 stop speech on tab change
+                stopSpeech();
                 setCprType(tab as CPRType);
-                setOpenStep(null);
+                setOpenStep(1);
               }}
               style={styles.tabButton}
             >
@@ -363,23 +352,12 @@ export default function CPRGuide() {
 
                   {isOpen && step.id < CPR_DATA[cprType].length && (
                     <TouchableOpacity
-                      style={{
-                        marginTop: 10,
-                        backgroundColor: "#2fa94e",
-                        padding: 10,
-                        borderRadius: 10,
-                      }}
+                      activeOpacity={0.85}
                       onPress={() => setOpenStep(step.id + 1)}
+                      style={styles.nextStepButton}
                     >
-                      <Text
-                        style={{
-                          color: "white",
-                          fontWeight: "bold",
-                          textAlign: "center",
-                        }}
-                      >
-                        Next Step
-                      </Text>
+                      <Text style={styles.nextStepText}>Next Step</Text>
+                      <Ionicons name="arrow-forward" size={18} color="#fff" />
                     </TouchableOpacity>
                   )}
                 </>
@@ -475,6 +453,9 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: "transparent",
     elevation: 2,
+    shadowColor: "#000",
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
   },
 
   stepCardOpen: {
@@ -601,5 +582,32 @@ const styles = StyleSheet.create({
     width: 30,
     borderRadius: 2,
     backgroundColor: "#e5383b",
+  },
+
+  nextStepButton: {
+    marginTop: 18,
+    backgroundColor: "#2fa94e",
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+
+    shadowColor: "#000",
+    shadowOpacity: 0.15,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 3 },
+
+    elevation: 4,
+  },
+
+  nextStepText: {
+    color: "white",
+    fontSize: 15,
+    fontWeight: "700",
+    letterSpacing: 0.3,
   },
 });
