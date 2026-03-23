@@ -155,7 +155,10 @@ export default function HomeScreen() {
       if (!data.routes?.length) return;
 
       const routeSteps = data.routes[0].legs[0].steps.map((step: any) => ({
-        instruction: step.html_instructions.replace(/<[^>]+>/g, ""),
+        instruction: step.html_instructions
+          .replace(/<[^>]+>/g, "")
+          .replace(/Destination will be on the right/gi, "")
+          .trim(),
         distance: step.distance.text,
         duration: step.duration.text,
         location: step.end_location,

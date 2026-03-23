@@ -360,6 +360,28 @@ export default function CPRGuide() {
                       </Text>
                     ))}
                   </View>
+
+                  {isOpen && step.id < CPR_DATA[cprType].length && (
+                    <TouchableOpacity
+                      style={{
+                        marginTop: 10,
+                        backgroundColor: "#2fa94e",
+                        padding: 10,
+                        borderRadius: 10,
+                      }}
+                      onPress={() => setOpenStep(step.id + 1)}
+                    >
+                      <Text
+                        style={{
+                          color: "white",
+                          fontWeight: "bold",
+                          textAlign: "center",
+                        }}
+                      >
+                        Next Step
+                      </Text>
+                    </TouchableOpacity>
+                  )}
                 </>
               )}
             </TouchableOpacity>
