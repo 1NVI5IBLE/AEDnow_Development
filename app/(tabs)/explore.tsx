@@ -79,7 +79,10 @@ export default function CPRGuide() {
   };
 
   useEffect(() => {
-    if (openStep === 5) {
+    const steps = CPR_DATA[cprType];
+    const lastStepId = steps[steps.length - 1].id;
+
+    if (openStep === lastStepId) {
       startCPRBeep();
     } else {
       stopCPRBeep();
@@ -91,7 +94,7 @@ export default function CPRGuide() {
       stopCPRBeep();
       stopSpeech();
     };
-  }, [openStep]);
+  }, [openStep, cprType]);
 
   const CPR_DATA: Record<CPRType, CPRStep[]> = {
     adult: [
