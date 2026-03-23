@@ -105,6 +105,7 @@ export default function HomeScreen() {
 
   const mapRef = useRef<MapView>(null);
   const [nearestAED, setNearestAED] = useState<any>(null);
+  const [steps, setSteps] = useState<any[]>([]);
   const [showSheet, setShowSheet] = useState(false);
   const [aedLocations, setAedLocations] = useState<AEDLocation[]>([]);
   const [loading, setLoading] = useState(true);
@@ -138,6 +139,34 @@ export default function HomeScreen() {
     });
 
     return nearby.length;
+  };
+
+  const fetchRouteSteps = async (
+    origin: { latitude: number; longitude: number },
+    destination: { latitude: number; longitude: number },
+  ) => {
+    try {
+      const res = await fetch(
+        `https://maps.googleapis.com/maps/api/directions/json?origin=${origin.latitude},${origin.longitude}&destination=${destination.latitude},${destination.longitude}&mode=${travelMode.toLowerCase()}&key=AIzaSyAsbwoWpdZ61S0x870J_S0E9NPNMx2IvuE`,
+      );
+
+      const data = await res.json();
+
+      if (!data.routes?.length) return;
+
+      const routeSteps = data.routes[0].legs[0].steps.map((step: any) => ({
+        instruction: step.html_instructions.replace(/<[^>]+>/g, ""),
+        distance: step.distance.text,
+        duration: step.duration.text,
+        location: step.end_location,
+      }));
+
+      setSteps(routeSteps);
+
+      console.log("ROUTE STEPS:", routeSteps);
+    } catch (err) {
+      console.error("Error fetching directions:", err);
+    }
   };
 
   // Fetch AED locations
@@ -372,7 +401,7 @@ export default function HomeScreen() {
           </Marker>
         ))}
 
-        {nearestAED && (
+        {nearestAED && userLocation && (
           <MapViewDirections
             origin={userLocation}
             destination={{
@@ -386,10 +415,35 @@ export default function HomeScreen() {
             onReady={(result) => {
               setEta(result.duration);
               setDistanceKm(result.distance);
+
+              if (userLocation && nearestAED) {
+                fetchRouteSteps(userLocation, {
+                  latitude: nearestAED.latitude,
+                  longitude: nearestAED.longitude,
+                });
+              }
             }}
           />
         )}
       </MapView>
+
+      {steps.length > 0 && (
+        <View
+          style={{
+            position: "absolute",
+            top: 200,
+            left: 20,
+            right: 20,
+            backgroundColor: "white",
+            padding: 12,
+            borderRadius: 10,
+            zIndex: 999,
+          }}
+        >
+          <Text style={{ fontWeight: "bold" }}>Next Step:</Text>
+          <Text>{steps[0]?.instruction}</Text>
+        </View>
+      )}
 
       {eta && (
         <View style={styles.etaContainer}>
