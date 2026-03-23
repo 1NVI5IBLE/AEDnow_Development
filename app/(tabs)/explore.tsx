@@ -274,7 +274,7 @@ export default function CPRGuide() {
               onPress={() => {
                 stopSpeech();
                 setCprType(tab as CPRType);
-                setOpenStep(1);
+                setOpenStep(null);
               }}
               style={styles.tabButton}
             >
@@ -291,7 +291,6 @@ export default function CPRGuide() {
           ))}
         </View>
 
-        {/* STEPS */}
         {CPR_DATA[cprType].map((step) => {
           const isOpen = openStep === step.id;
 
@@ -324,6 +323,13 @@ export default function CPRGuide() {
                   <Text style={styles.stepSubtitle}>{step.subtitle}</Text>
                 </View>
 
+                <TouchableOpacity
+                  onPress={() => speakFullStep(step)}
+                  style={styles.audioIconButton}
+                >
+                  <Ionicons name="volume-high" size={20} color="#e5383b" />
+                </TouchableOpacity>
+
                 <Ionicons
                   name={isOpen ? "chevron-up" : "chevron-forward"}
                   size={20}
@@ -332,16 +338,6 @@ export default function CPRGuide() {
 
               {isOpen && (
                 <>
-                  <TouchableOpacity
-                    style={styles.speakButton}
-                    onPress={() => speakFullStep(step)}
-                  >
-                    <Ionicons name="volume-high" size={18} color="#fff" />
-                    <Text style={styles.speakButtonText}>
-                      Play Instructions
-                    </Text>
-                  </TouchableOpacity>
-
                   <View style={styles.bulletSection}>
                     {step.bullets.map((b, i) => (
                       <Text key={i} style={styles.bulletText}>
@@ -370,8 +366,6 @@ export default function CPRGuide() {
   );
 }
 
-/* ================= STYLES ================= */
-
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -379,7 +373,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
   },
 
-  /* 🔴 HEADER THAT COMES DOWN */
   header: {
     backgroundColor: "#e5383b",
     paddingTop: 60,
@@ -609,5 +602,11 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: "700",
     letterSpacing: 0.3,
+  },
+
+  audioIconButton: {
+    padding: 6,
+    marginRight: 8,
+    borderRadius: 20,
   },
 });
