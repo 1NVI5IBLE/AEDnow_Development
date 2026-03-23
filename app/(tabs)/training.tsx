@@ -2,6 +2,7 @@ import { Audio } from "expo-av";
 import { useEffect, useRef, useState } from "react";
 import {
   Animated,
+  Image,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -110,7 +111,6 @@ export default function TrainingScreen() {
     if (lastTapRef.current) {
       const interval = now - lastTapRef.current;
 
-      // Ignore accidental double taps
       if (interval < 250 || interval > 1000) {
         lastTapRef.current = now;
         return;
@@ -162,21 +162,32 @@ export default function TrainingScreen() {
   return (
     <View style={styles.container}>
       <Text style={styles.title}>CPR Training Mode</Text>
-
       <Text style={styles.subtitle}>
         Practice chest compressions by tapping with the beat.
       </Text>
 
-      <Animated.View style={{ transform: [{ scale: pulseAnim }] }}>
-        <TouchableOpacity
-          style={[styles.tapButton, !running && styles.tapButtonDisabled]}
-          onPress={handleTap}
-          activeOpacity={0.8}
-          disabled={!running}
-        >
-          <Text style={styles.tapText}>TAP</Text>
-        </TouchableOpacity>
-      </Animated.View>
+      {/* ================= CHEST IMAGE + TAP BUTTON ================= */}
+      <View style={styles.bodyContainer}>
+        <View style={styles.chestWrapper}>
+          <Image
+            source={require("../../assets/images/6800891.png")}
+            style={styles.chestImage}
+            resizeMode="contain"
+          />
+          <Animated.View
+            style={[styles.tapOverlay, { transform: [{ scale: pulseAnim }] }]}
+          >
+            <TouchableOpacity
+              style={[styles.tapButton, !running && styles.tapButtonDisabled]}
+              onPress={handleTap}
+              activeOpacity={0.85}
+              disabled={!running}
+            >
+              <Text style={styles.tapText}>TAP</Text>
+            </TouchableOpacity>
+          </Animated.View>
+        </View>
+      </View>
 
       <Text style={styles.feedback}>{feedback}</Text>
 
@@ -219,18 +230,47 @@ const styles = StyleSheet.create({
     marginBottom: 30,
   },
 
-  tapButton: {
-    width: 180,
-    height: 180,
-    borderRadius: 90,
-    backgroundColor: "#2fa94e",
-    justifyContent: "center",
+  bodyContainer: {
     alignItems: "center",
+    justifyContent: "center",
     marginBottom: 20,
   },
 
+  chestWrapper: {
+    position: "relative",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  chestImage: {
+    width: 350,
+    height: 350,
+  },
+
+  tapOverlay: {
+    position: "absolute",
+    top: "50%", // tweak this to match center of chest
+    left: 0,
+    right: 0,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  tapButton: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    backgroundColor: "#2fa94e",
+    justifyContent: "center",
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOpacity: 0.2,
+    shadowRadius: 6,
+    elevation: 4,
+  },
+
   tapButtonDisabled: {
-    backgroundColor: "#adb5bd",
+    backgroundColor: "#e5383b",
   },
 
   tapText: {
