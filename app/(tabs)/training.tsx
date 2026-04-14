@@ -10,16 +10,12 @@ import {
   View,
 } from "react-native";
 
-/* ================= CONFIG ================= */
-
 const TARGET_BPM = 110;
 const MIN_BPM = 100;
 const MAX_BPM = 120;
 
 const BPM_INTERVAL = 60000 / TARGET_BPM;
 const MAX_SAMPLES = 5; // taps to average
-
-/* ================= SCREEN ================= */
 
 export default function TrainingScreen() {
   const beepSound = useRef<Audio.Sound | null>(null);
@@ -33,8 +29,6 @@ export default function TrainingScreen() {
   const [running, setRunning] = useState(false);
 
   const pulseAnim = useRef(new Animated.Value(1)).current;
-
-  /* ================= VISUAL PULSE ================= */
 
   const pulseOnce = () => {
     Animated.sequence([
@@ -50,8 +44,6 @@ export default function TrainingScreen() {
       }),
     ]).start();
   };
-
-  /* ================= METRONOME ================= */
 
   const startMetronome = async () => {
     if (intervalRef.current !== null) return;
@@ -103,8 +95,6 @@ export default function TrainingScreen() {
     setFeedback("Tap with the beat");
   };
 
-  /* ================= TAP HANDLER ================= */
-
   const handleTap = () => {
     const now = Date.now();
 
@@ -149,15 +139,11 @@ export default function TrainingScreen() {
     lastTapRef.current = now;
   };
 
-  /* ================= CLEANUP ================= */
-
   useEffect(() => {
     return () => {
       stopMetronome();
     };
   }, []);
-
-  /* ================= UI ================= */
 
   return (
     <View style={styles.container}>
@@ -166,7 +152,6 @@ export default function TrainingScreen() {
         Practice chest compressions by tapping with the beat.
       </Text>
 
-      {/* ================= CHEST IMAGE + TAP BUTTON ================= */}
       <View style={styles.bodyContainer}>
         <View style={styles.chestWrapper}>
           <Image
@@ -206,8 +191,6 @@ export default function TrainingScreen() {
     </View>
   );
 }
-
-/* ================= STYLES ================= */
 
 const styles = StyleSheet.create({
   container: {

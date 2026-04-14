@@ -1,7 +1,7 @@
 import * as Device from "expo-device";
 import * as Location from "expo-location";
 import * as Notifications from "expo-notifications";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -12,7 +12,8 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import MapView, { Marker } from "react-native-maps";
+import ClusteredMapView from "react-native-map-clustering";
+import { Marker } from "react-native-maps";
 import MapViewDirections from "react-native-maps-directions";
 
 const greenMarker = require("../../assets/images/markers/green_marker.png");
@@ -92,6 +93,12 @@ function formatAddress(address?: string): string {
 }
 
 export default function HomeScreen() {
+  const [region, setRegion] = useState<{
+    latitude: number;
+    longitude: number;
+    latitudeDelta: number;
+    longitudeDelta: number;
+  } | null>(null);
   const [eta, setEta] = useState<number | null>(null);
   const [distance, setDistanceKm] = useState<number | null>(null);
   const [travelMode, setTravelMode] = useState<"DRIVING" | "WALKING">(
@@ -103,7 +110,7 @@ export default function HomeScreen() {
     longitude: number;
   } | null>(null);
 
-  const mapRef = useRef<MapView>(null);
+  const mapRef = useRef<any>(null);
   const [nearestAED, setNearestAED] = useState<any>(null);
   const [steps, setSteps] = useState<any[]>([]);
   const [showSheet, setShowSheet] = useState(false);
@@ -240,8 +247,8 @@ export default function HomeScreen() {
         const subscription = await Location.watchPositionAsync(
           {
             accuracy: Location.Accuracy.Highest,
-            timeInterval: 1000,
-            distanceInterval: 1,
+            timeInterval: 5000,
+            distanceInterval: 10,
           },
           (location) => {
             setUserLocation({
@@ -289,7 +296,7 @@ export default function HomeScreen() {
           Notifications.scheduleNotificationAsync({
             content: {
               title: "Nearest AED",
-              body: `The closest AED is ${km} km away.`,
+              body: `The closest AED is ${km} km .`,
             },
             trigger: null,
           });
@@ -326,6 +333,25 @@ export default function HomeScreen() {
       </View>
     );
   }
+
+  const visibleAEDs = useMemo(() => {
+    if (!region) return [];
+
+    const { latitude, longitude, latitudeDelta, longitudeDelta } = region;
+
+    const latMin = latitude - latitudeDelta / 2;
+    const latMax = latitude + latitudeDelta / 2;
+    const lonMin = longitude - longitudeDelta / 2;
+    const lonMax = longitude + longitudeDelta / 2;
+
+    return aedLocations.filter(
+      (aed) =>
+        aed.latitude >= latMin &&
+        aed.latitude <= latMax &&
+        aed.longitude >= lonMin &&
+        aed.longitude <= lonMax,
+    );
+  }, [region, aedLocations]);
 
   return (
     <View style={styles.container}>
@@ -374,9 +400,8 @@ export default function HomeScreen() {
         </TouchableOpacity>
       )}
 
-      <MapView
+      <ClusteredMapView
         ref={mapRef}
-        provider="google"
         style={styles.map}
         showsUserLocation={true}
         followsUserLocation={true}
@@ -386,10 +411,13 @@ export default function HomeScreen() {
           latitudeDelta: 0.01,
           longitudeDelta: 0.01,
         }}
+        animationEnabled
+        clusterColor="#e5383b"
+        onRegionChangeComplete={(reg) => setRegion(reg)}
       >
         <Marker coordinate={userLocation} title="You are here" />
 
-        {aedLocations.map((aed) => (
+        {visibleAEDs.map((aed) => (
           <Marker
             key={aed.id}
             coordinate={{ latitude: aed.latitude, longitude: aed.longitude }}
@@ -428,13 +456,13 @@ export default function HomeScreen() {
             }}
           />
         )}
-      </MapView>
+      </ClusteredMapView>
 
-      {steps.length > 0 && (
+      {/* {steps.length > 0 && (
         <View
           style={{
             position: "absolute",
-            top: 200,
+            top: 260,
             left: 20,
             right: 20,
             backgroundColor: "white",
@@ -445,8 +473,10 @@ export default function HomeScreen() {
         >
           <Text style={{ fontWeight: "bold" }}>Next Step:</Text>
           <Text>{steps[0]?.instruction}</Text>
+          <Text>{steps[0]?.distance}</Text>
+          <Text>{steps[0]?.duration}</Text>
         </View>
-      )}
+      )}  */}
 
       {eta && (
         <View style={styles.etaContainer}>
