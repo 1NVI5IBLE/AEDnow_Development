@@ -246,7 +246,6 @@ export default function CPRGuide() {
       style={styles.container}
       contentContainerStyle={{ paddingBottom: 40 }}
     >
-      {/* HEADER */}
       <View style={styles.header}>
         <Text style={styles.headerTitle}>CPR & Emergency Guide</Text>
         <Text style={styles.headerSubtitle}>
@@ -255,7 +254,6 @@ export default function CPRGuide() {
       </View>
 
       <View style={styles.content}>
-        {/* ALERT */}
         <View style={styles.alertBox}>
           <Text style={styles.alertText}>
             In case of emergency, call immediately!
@@ -365,6 +363,14 @@ export default function CPRGuide() {
           );
         })}
       </View>
+      <View style={styles.disclaimerBox}>
+        <Ionicons name="information-circle-outline" size={16} color="#6c757d" />
+        <Text style={styles.disclaimerText}>
+          These CPR instructions are provided as guidance based on
+          recommendations from the Irish Heart Foundation. In an emergency,
+          always follow the advice of emergency services.
+        </Text>
+      </View>
     </ScrollView>
   );
 }
@@ -403,7 +409,6 @@ const styles = StyleSheet.create({
     marginTop: 6,
   },
 
-  /* CONTENT FLOAT */
   content: {
     paddingTop: 40,
   },
@@ -611,5 +616,22 @@ const styles = StyleSheet.create({
     padding: 6,
     marginRight: 8,
     borderRadius: 20,
+  },
+
+  disclaimerBox: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 8,
+    backgroundColor: "#f1f3f5",
+    padding: 12,
+    borderRadius: 12,
+    marginTop: 20,
+  },
+
+  disclaimerText: {
+    flex: 1,
+    fontSize: 12,
+    color: "#495057",
+    lineHeight: 16,
   },
 });

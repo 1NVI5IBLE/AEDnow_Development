@@ -5,6 +5,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
+  Animated,
   Button,
   Image,
   StyleSheet,
@@ -100,6 +101,7 @@ export default function HomeScreen() {
     longitudeDelta: number;
   } | null>(null);
   const [eta, setEta] = useState<number | null>(null);
+  const pulseAnim = useRef(new Animated.Value(1)).current;
   const [distance, setDistanceKm] = useState<number | null>(null);
   const [travelMode, setTravelMode] = useState<"DRIVING" | "WALKING">(
     "DRIVING",
@@ -118,6 +120,25 @@ export default function HomeScreen() {
   const [loading, setLoading] = useState(true);
 
   const [notificationSent, setNotificationSent] = useState(false);
+
+  const visibleAEDs = useMemo(() => {
+    if (!region) return aedLocations;
+
+    const { latitude, longitude, latitudeDelta, longitudeDelta } = region;
+
+    const latMin = latitude - latitudeDelta / 2;
+    const latMax = latitude + latitudeDelta / 2;
+    const lonMin = longitude - longitudeDelta / 2;
+    const lonMax = longitude + longitudeDelta / 2;
+
+    return aedLocations.filter(
+      (aed) =>
+        aed.latitude >= latMin &&
+        aed.latitude <= latMax &&
+        aed.longitude >= lonMin &&
+        aed.longitude <= lonMax,
+    );
+  }, [region, aedLocations]);
 
   const sendAEDNotification = async (count: number) => {
     await Notifications.scheduleNotificationAsync({
@@ -334,25 +355,6 @@ export default function HomeScreen() {
     );
   }
 
-  const visibleAEDs = useMemo(() => {
-    if (!region) return [];
-
-    const { latitude, longitude, latitudeDelta, longitudeDelta } = region;
-
-    const latMin = latitude - latitudeDelta / 2;
-    const latMax = latitude + latitudeDelta / 2;
-    const lonMin = longitude - longitudeDelta / 2;
-    const lonMax = longitude + longitudeDelta / 2;
-
-    return aedLocations.filter(
-      (aed) =>
-        aed.latitude >= latMin &&
-        aed.latitude <= latMax &&
-        aed.longitude >= lonMin &&
-        aed.longitude <= lonMax,
-    );
-  }, [region, aedLocations]);
-
   return (
     <View style={styles.container}>
       <View style={styles.header}>
@@ -413,7 +415,69 @@ export default function HomeScreen() {
         }}
         animationEnabled
         clusterColor="#e5383b"
+        radius={40}
         onRegionChangeComplete={(reg) => setRegion(reg)}
+        renderCluster={(cluster) => {
+          const { id, geometry, properties } = cluster;
+          const points = properties.point_count;
+          const label = points > 99 ? "99+" : points;
+
+          const size =
+            points < 10 ? 40 : points < 50 ? 50 : points < 100 ? 60 : 70;
+
+          return (
+            <Marker
+              key={id}
+              coordinate={{
+                latitude: geometry.coordinates[1],
+                longitude: geometry.coordinates[0],
+              }}
+              onPress={() => {
+                if (!region) return;
+
+                const nextDelta =
+                  region.latitudeDelta > 0.02
+                    ? region.latitudeDelta / 3 // big jump when zoomed out
+                    : 0.005; // snap to full detail
+
+                mapRef.current?.animateToRegion({
+                  latitude: geometry.coordinates[1],
+                  longitude: geometry.coordinates[0],
+                  latitudeDelta: nextDelta,
+                  longitudeDelta: nextDelta,
+                });
+              }}
+            >
+              <View
+                style={{
+                  width: size,
+                  height: size,
+                  borderRadius: size / 2,
+                  backgroundColor: "rgba(229, 56, 59, 0.9)",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  borderWidth: 2,
+                  borderColor: "rgba(255,255,255,0.8)",
+                  shadowColor: "#000",
+                  shadowOpacity: 0.25,
+                  shadowRadius: 8,
+                  elevation: 8,
+                }}
+              >
+                <Text
+                  style={{
+                    color: "white",
+                    fontWeight: "bold",
+                    fontSize: 14,
+                    letterSpacing: 0.5,
+                  }}
+                >
+                  {label}
+                </Text>
+              </View>
+            </Marker>
+          );
+        }}
       >
         <Marker coordinate={userLocation} title="You are here" />
 
@@ -421,8 +485,17 @@ export default function HomeScreen() {
           <Marker
             key={aed.id}
             coordinate={{ latitude: aed.latitude, longitude: aed.longitude }}
-            title={aed.name}
-            description={aed.address}
+            onPress={() => {
+              setNearestAED(aed);
+              setShowSheet(true);
+
+              mapRef.current?.animateToRegion({
+                latitude: aed.latitude,
+                longitude: aed.longitude,
+                latitudeDelta: 0.01,
+                longitudeDelta: 0.01,
+              });
+            }}
           >
             <Image
               source={greenMarker}
@@ -433,28 +506,43 @@ export default function HomeScreen() {
         ))}
 
         {nearestAED && userLocation && (
-          <MapViewDirections
-            origin={userLocation}
-            destination={{
-              latitude: nearestAED.latitude,
-              longitude: nearestAED.longitude,
-            }}
-            apikey="AIzaSyAsbwoWpdZ61S0x870J_S0E9NPNMx2IvuE"
-            strokeWidth={4}
-            strokeColor="#2ecc71"
-            mode={travelMode}
-            onReady={(result) => {
-              setEta(result.duration);
-              setDistanceKm(result.distance);
+          <>
+            <MapViewDirections
+              origin={userLocation}
+              destination={{
+                latitude: nearestAED.latitude,
+                longitude: nearestAED.longitude,
+              }}
+              apikey="AIzaSyAsbwoWpdZ61S0x870J_S0E9NPNMx2IvuE"
+              strokeWidth={10}
+              strokeColor="rgba(0,0,0,0.15)"
+              mode={travelMode}
+            />
+            <MapViewDirections
+              origin={userLocation}
+              destination={{
+                latitude: nearestAED.latitude,
+                longitude: nearestAED.longitude,
+              }}
+              apikey="AIzaSyAsbwoWpdZ61S0x870J_S0E9NPNMx2IvuE"
+              strokeWidth={6}
+              strokeColor="#16a34a"
+              lineCap="round"
+              lineJoin="round"
+              mode={travelMode}
+              onReady={(result) => {
+                setEta(result.duration);
+                setDistanceKm(result.distance);
 
-              if (userLocation && nearestAED) {
-                fetchRouteSteps(userLocation, {
-                  latitude: nearestAED.latitude,
-                  longitude: nearestAED.longitude,
-                });
-              }
-            }}
-          />
+                if (userLocation && nearestAED) {
+                  fetchRouteSteps(userLocation, {
+                    latitude: nearestAED.latitude,
+                    longitude: nearestAED.longitude,
+                  });
+                }
+              }}
+            />
+          </>
         )}
       </ClusteredMapView>
 
@@ -603,8 +691,6 @@ export default function HomeScreen() {
     </View>
   );
 }
-
-/* ================= STYLES ================= */
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
