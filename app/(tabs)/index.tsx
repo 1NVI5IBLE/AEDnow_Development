@@ -127,7 +127,7 @@ export default function HomeScreen() {
     const { latitudeDelta } = region;
 
     // 🔥 if zoomed out too far → don't render markers
-    if (latitudeDelta > 0.5) return [];
+    if (latitudeDelta > 1.5) return [];
 
     const {
       latitude,
