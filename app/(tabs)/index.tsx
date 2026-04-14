@@ -122,14 +122,24 @@ export default function HomeScreen() {
   const [notificationSent, setNotificationSent] = useState(false);
 
   const visibleAEDs = useMemo(() => {
-    if (!region) return aedLocations;
+    if (!region) return [];
 
-    const { latitude, longitude, latitudeDelta, longitudeDelta } = region;
+    const { latitudeDelta } = region;
 
-    const latMin = latitude - latitudeDelta / 2;
-    const latMax = latitude + latitudeDelta / 2;
-    const lonMin = longitude - longitudeDelta / 2;
-    const lonMax = longitude + longitudeDelta / 2;
+    // 🔥 if zoomed out too far → don't render markers
+    if (latitudeDelta > 0.5) return [];
+
+    const {
+      latitude,
+      longitude,
+      latitudeDelta: latD,
+      longitudeDelta: lonD,
+    } = region;
+
+    const latMin = latitude - latD / 2;
+    const latMax = latitude + latD / 2;
+    const lonMin = longitude - lonD / 2;
+    const lonMax = longitude + lonD / 2;
 
     return aedLocations.filter(
       (aed) =>
@@ -415,7 +425,7 @@ export default function HomeScreen() {
         }}
         animationEnabled
         clusterColor="#e5383b"
-        radius={40}
+        radius={80}
         onRegionChangeComplete={(reg) => setRegion(reg)}
         renderCluster={(cluster) => {
           const { id, geometry, properties } = cluster;
@@ -428,6 +438,7 @@ export default function HomeScreen() {
           return (
             <Marker
               key={id}
+              tracksViewChanges={false}
               coordinate={{
                 latitude: geometry.coordinates[1],
                 longitude: geometry.coordinates[0],
@@ -484,6 +495,7 @@ export default function HomeScreen() {
         {visibleAEDs.map((aed) => (
           <Marker
             key={aed.id}
+            tracksViewChanges={false}
             coordinate={{ latitude: aed.latitude, longitude: aed.longitude }}
             onPress={() => {
               setNearestAED(aed);
