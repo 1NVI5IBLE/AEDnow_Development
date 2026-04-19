@@ -14,7 +14,7 @@ import {
   View,
 } from "react-native";
 import ClusteredMapView from "react-native-map-clustering";
-import { Marker } from "react-native-maps";
+import MapView, { Marker } from "react-native-maps";
 import MapViewDirections from "react-native-maps-directions";
 
 const greenMarker = require("../../assets/images/markers/green_marker.png");
@@ -118,7 +118,9 @@ export default function HomeScreen() {
   const [showSheet, setShowSheet] = useState(false);
   const [aedLocations, setAedLocations] = useState<AEDLocation[]>([]);
   const [loading, setLoading] = useState(true);
-  const isZoomedOut = region?.latitudeDelta && region.latitudeDelta > 0.8;
+  const isZoomedOut = region?.latitudeDelta
+    ? region.latitudeDelta > 0.8
+    : false;
 
   const regionTimeout = useRef<any>(null);
 
@@ -361,6 +363,8 @@ export default function HomeScreen() {
     );
   };
 
+  const MapComponent = isZoomedOut ? MapView : ClusteredMapView;
+
   if (!userLocation || loading) {
     return (
       <View style={styles.loadingContainer}>
@@ -416,12 +420,11 @@ export default function HomeScreen() {
         </TouchableOpacity>
       )}
 
-      <ClusteredMapView
+      <MapComponent
         ref={mapRef}
         style={styles.map}
         showsUserLocation={true}
         followsUserLocation={true}
-        clusteringEnabled={!isZoomedOut}
         initialRegion={{
           latitude: userLocation.latitude,
           longitude: userLocation.longitude,
@@ -429,8 +432,6 @@ export default function HomeScreen() {
           longitudeDelta: 0.01,
         }}
         animationEnabled
-        clusterColor="#e5383b"
-        radius={120}
         onRegionChangeComplete={(reg) => {
           if (regionTimeout.current) {
             clearTimeout(regionTimeout.current);
@@ -440,68 +441,44 @@ export default function HomeScreen() {
             setRegion(reg);
           }, 150);
         }}
-        renderCluster={(cluster) => {
-          const { id, geometry, properties } = cluster;
-          const points = properties.point_count;
-          const label = points > 99 ? "99+" : points;
+        // 👇 ONLY apply these when using ClusteredMapView
+        {...(!isZoomedOut && {
+          clusterColor: "#e5383b",
+          radius: 120,
+          renderCluster: (cluster) => {
+            const { id, geometry, properties } = cluster;
+            const points = properties.point_count;
+            const label = points > 99 ? "99+" : points;
 
-          const size =
-            points < 10 ? 40 : points < 50 ? 50 : points < 100 ? 60 : 70;
+            const size =
+              points < 10 ? 40 : points < 50 ? 50 : points < 100 ? 60 : 70;
 
-          return (
-            <Marker
-              key={id}
-              tracksViewChanges={false}
-              coordinate={{
-                latitude: geometry.coordinates[1],
-                longitude: geometry.coordinates[0],
-              }}
-              onPress={() => {
-                if (!region) return;
-
-                const nextDelta =
-                  region.latitudeDelta > 0.02
-                    ? region.latitudeDelta / 3 // big jump when zoomed out
-                    : 0.005; // snap to full detail
-
-                mapRef.current?.animateToRegion({
+            return (
+              <Marker
+                key={id}
+                coordinate={{
                   latitude: geometry.coordinates[1],
                   longitude: geometry.coordinates[0],
-                  latitudeDelta: nextDelta,
-                  longitudeDelta: nextDelta,
-                });
-              }}
-            >
-              <View
-                style={{
-                  width: size,
-                  height: size,
-                  borderRadius: size / 2,
-                  backgroundColor: "rgba(229, 56, 59, 0.9)",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  borderWidth: 2,
-                  borderColor: "rgba(255,255,255,0.8)",
-                  shadowColor: "#000",
-                  shadowOpacity: 0.25,
-                  shadowRadius: 8,
-                  elevation: 8,
                 }}
               >
-                <Text
+                <View
                   style={{
-                    color: "white",
-                    fontWeight: "bold",
-                    fontSize: 14,
-                    letterSpacing: 0.5,
+                    width: size,
+                    height: size,
+                    borderRadius: size / 2,
+                    backgroundColor: "rgba(229, 56, 59, 0.9)",
+                    alignItems: "center",
+                    justifyContent: "center",
                   }}
                 >
-                  {label}
-                </Text>
-              </View>
-            </Marker>
-          );
-        }}
+                  <Text style={{ color: "white", fontWeight: "bold" }}>
+                    {label}
+                  </Text>
+                </View>
+              </Marker>
+            );
+          },
+        })}
       >
         <Marker coordinate={userLocation} title="You are here" />
 
@@ -569,7 +546,7 @@ export default function HomeScreen() {
             />
           </>
         )}
-      </ClusteredMapView>
+      </MapComponent>
 
       {/* {steps.length > 0 && (
         <View
