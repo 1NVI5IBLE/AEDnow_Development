@@ -118,6 +118,9 @@ export default function HomeScreen() {
   const [showSheet, setShowSheet] = useState(false);
   const [aedLocations, setAedLocations] = useState<AEDLocation[]>([]);
   const [loading, setLoading] = useState(true);
+  const isZoomedOut = region?.latitudeDelta && region.latitudeDelta > 0.8;
+
+  const regionTimeout = useRef<any>(null);
 
   const [notificationSent, setNotificationSent] = useState(false);
 
@@ -126,8 +129,7 @@ export default function HomeScreen() {
 
     const { latitudeDelta } = region;
 
-    // 🔥 if zoomed out too far → don't render markers
-    if (latitudeDelta > 1.5) return [];
+    if (latitudeDelta > 1.0) return [];
 
     const {
       latitude,
@@ -141,13 +143,15 @@ export default function HomeScreen() {
     const lonMin = longitude - lonD / 2;
     const lonMax = longitude + lonD / 2;
 
-    return aedLocations.filter(
-      (aed) =>
-        aed.latitude >= latMin &&
-        aed.latitude <= latMax &&
-        aed.longitude >= lonMin &&
-        aed.longitude <= lonMax,
-    );
+    return aedLocations
+      .filter(
+        (aed) =>
+          aed.latitude >= latMin &&
+          aed.latitude <= latMax &&
+          aed.longitude >= lonMin &&
+          aed.longitude <= lonMax,
+      )
+      .slice(0, 60);
   }, [region, aedLocations]);
 
   const sendAEDNotification = async (count: number) => {
@@ -417,6 +421,7 @@ export default function HomeScreen() {
         style={styles.map}
         showsUserLocation={true}
         followsUserLocation={true}
+        clusteringEnabled={!isZoomedOut}
         initialRegion={{
           latitude: userLocation.latitude,
           longitude: userLocation.longitude,
@@ -425,8 +430,16 @@ export default function HomeScreen() {
         }}
         animationEnabled
         clusterColor="#e5383b"
-        radius={80}
-        onRegionChangeComplete={(reg) => setRegion(reg)}
+        radius={120}
+        onRegionChangeComplete={(reg) => {
+          if (regionTimeout.current) {
+            clearTimeout(regionTimeout.current);
+          }
+
+          regionTimeout.current = setTimeout(() => {
+            setRegion(reg);
+          }, 150);
+        }}
         renderCluster={(cluster) => {
           const { id, geometry, properties } = cluster;
           const points = properties.point_count;
@@ -517,7 +530,7 @@ export default function HomeScreen() {
           </Marker>
         ))}
 
-        {nearestAED && userLocation && (
+        {nearestAED && userLocation && region && region.latitudeDelta < 0.3 && (
           <>
             <MapViewDirections
               origin={userLocation}
