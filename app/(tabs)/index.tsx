@@ -118,6 +118,7 @@ export default function HomeScreen() {
   const [showSheet, setShowSheet] = useState(false);
   const [aedLocations, setAedLocations] = useState<AEDLocation[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showDirections, setShowDirections] = useState(false);
 
   const regionTimeout = useRef<any>(null);
 
@@ -502,32 +503,36 @@ export default function HomeScreen() {
         ))}
 
         {/* 👇 DIRECTIONS (KEEP ONLY ONE — important) */}
-        {nearestAED && userLocation && region && region.latitudeDelta < 0.3 && (
-          <MapViewDirections
-            origin={userLocation}
-            destination={{
-              latitude: nearestAED.latitude,
-              longitude: nearestAED.longitude,
-            }}
-            apikey="AIzaSyAsbwoWpdZ61S0x870J_S0E9NPNMx2IvuE"
-            strokeWidth={6}
-            strokeColor="#16a34a"
-            lineCap="round"
-            lineJoin="round"
-            mode={travelMode}
-            onReady={(result) => {
-              setEta(result.duration);
-              setDistanceKm(result.distance);
+        {showDirections &&
+          nearestAED &&
+          userLocation &&
+          region &&
+          region.latitudeDelta < 0.3 && (
+            <MapViewDirections
+              origin={userLocation}
+              destination={{
+                latitude: nearestAED.latitude,
+                longitude: nearestAED.longitude,
+              }}
+              apikey="AIzaSyAsbwoWpdZ61S0x870J_S0E9NPNMx2IvuE"
+              strokeWidth={6}
+              strokeColor="#16a34a"
+              lineCap="round"
+              lineJoin="round"
+              mode={travelMode}
+              onReady={(result) => {
+                setEta(result.duration);
+                setDistanceKm(result.distance);
 
-              if (userLocation && nearestAED) {
-                fetchRouteSteps(userLocation, {
-                  latitude: nearestAED.latitude,
-                  longitude: nearestAED.longitude,
-                });
-              }
-            }}
-          />
-        )}
+                if (userLocation && nearestAED) {
+                  fetchRouteSteps(userLocation, {
+                    latitude: nearestAED.latitude,
+                    longitude: nearestAED.longitude,
+                  });
+                }
+              }}
+            />
+          )}
       </ClusteredMapView>
 
       {/* {steps.length > 0 && (
@@ -598,7 +603,10 @@ export default function HomeScreen() {
         <View style={styles.roundedButtonWrapper}>
           <Button
             title="Find Nearest AED"
-            onPress={handleFindNearestAED}
+            onPress={() => {
+              handleFindNearestAED();
+              setShowDirections(true);
+            }}
             color="#069864"
           />
         </View>
