@@ -14,7 +14,7 @@ import {
   View,
 } from "react-native";
 import ClusteredMapView from "react-native-map-clustering";
-import MapView, { Marker } from "react-native-maps";
+import { Marker } from "react-native-maps";
 import MapViewDirections from "react-native-maps-directions";
 
 const greenMarker = require("../../assets/images/markers/green_marker.png");
@@ -118,9 +118,6 @@ export default function HomeScreen() {
   const [showSheet, setShowSheet] = useState(false);
   const [aedLocations, setAedLocations] = useState<AEDLocation[]>([]);
   const [loading, setLoading] = useState(true);
-  const isZoomedOut = region?.latitudeDelta
-    ? region.latitudeDelta > 0.8
-    : false;
 
   const regionTimeout = useRef<any>(null);
 
@@ -363,8 +360,6 @@ export default function HomeScreen() {
     );
   };
 
-  const MapComponent = isZoomedOut ? MapView : ClusteredMapView;
-
   if (!userLocation || loading) {
     return (
       <View style={styles.loadingContainer}>
@@ -420,7 +415,7 @@ export default function HomeScreen() {
         </TouchableOpacity>
       )}
 
-      <MapComponent
+      <ClusteredMapView
         ref={mapRef}
         style={styles.map}
         showsUserLocation={true}
@@ -439,49 +434,48 @@ export default function HomeScreen() {
 
           regionTimeout.current = setTimeout(() => {
             setRegion(reg);
-          }, 150);
+          }, 300);
         }}
-        // 👇 ONLY apply these when using ClusteredMapView
-        {...(!isZoomedOut && {
-          clusterColor: "#e5383b",
-          radius: 120,
-          renderCluster: (cluster) => {
-            const { id, geometry, properties } = cluster;
-            const points = properties.point_count;
-            const label = points > 99 ? "99+" : points;
+        clusterColor="#e5383b"
+        radius={120}
+        renderCluster={(cluster) => {
+          const { id, geometry, properties } = cluster;
+          const points = properties.point_count;
+          const label = points > 99 ? "99+" : points;
 
-            const size =
-              points < 10 ? 40 : points < 50 ? 50 : points < 100 ? 60 : 70;
+          const size =
+            points < 10 ? 40 : points < 50 ? 50 : points < 100 ? 60 : 70;
 
-            return (
-              <Marker
-                key={id}
-                coordinate={{
-                  latitude: geometry.coordinates[1],
-                  longitude: geometry.coordinates[0],
+          return (
+            <Marker
+              key={id}
+              coordinate={{
+                latitude: geometry.coordinates[1],
+                longitude: geometry.coordinates[0],
+              }}
+            >
+              <View
+                style={{
+                  width: size,
+                  height: size,
+                  borderRadius: size / 2,
+                  backgroundColor: "rgba(229, 56, 59, 0.9)",
+                  alignItems: "center",
+                  justifyContent: "center",
                 }}
               >
-                <View
-                  style={{
-                    width: size,
-                    height: size,
-                    borderRadius: size / 2,
-                    backgroundColor: "rgba(229, 56, 59, 0.9)",
-                    alignItems: "center",
-                    justifyContent: "center",
-                  }}
-                >
-                  <Text style={{ color: "white", fontWeight: "bold" }}>
-                    {label}
-                  </Text>
-                </View>
-              </Marker>
-            );
-          },
-        })}
+                <Text style={{ color: "white", fontWeight: "bold" }}>
+                  {label}
+                </Text>
+              </View>
+            </Marker>
+          );
+        }}
       >
+        {/* 👇 USER LOCATION */}
         <Marker coordinate={userLocation} title="You are here" />
 
+        {/* 👇 AED MARKERS */}
         {visibleAEDs.map((aed) => (
           <Marker
             key={aed.id}
@@ -507,46 +501,34 @@ export default function HomeScreen() {
           </Marker>
         ))}
 
+        {/* 👇 DIRECTIONS (KEEP ONLY ONE — important) */}
         {nearestAED && userLocation && region && region.latitudeDelta < 0.3 && (
-          <>
-            <MapViewDirections
-              origin={userLocation}
-              destination={{
-                latitude: nearestAED.latitude,
-                longitude: nearestAED.longitude,
-              }}
-              apikey="AIzaSyAsbwoWpdZ61S0x870J_S0E9NPNMx2IvuE"
-              strokeWidth={10}
-              strokeColor="rgba(0,0,0,0.15)"
-              mode={travelMode}
-            />
-            <MapViewDirections
-              origin={userLocation}
-              destination={{
-                latitude: nearestAED.latitude,
-                longitude: nearestAED.longitude,
-              }}
-              apikey="AIzaSyAsbwoWpdZ61S0x870J_S0E9NPNMx2IvuE"
-              strokeWidth={6}
-              strokeColor="#16a34a"
-              lineCap="round"
-              lineJoin="round"
-              mode={travelMode}
-              onReady={(result) => {
-                setEta(result.duration);
-                setDistanceKm(result.distance);
+          <MapViewDirections
+            origin={userLocation}
+            destination={{
+              latitude: nearestAED.latitude,
+              longitude: nearestAED.longitude,
+            }}
+            apikey="AIzaSyAsbwoWpdZ61S0x870J_S0E9NPNMx2IvuE"
+            strokeWidth={6}
+            strokeColor="#16a34a"
+            lineCap="round"
+            lineJoin="round"
+            mode={travelMode}
+            onReady={(result) => {
+              setEta(result.duration);
+              setDistanceKm(result.distance);
 
-                if (userLocation && nearestAED) {
-                  fetchRouteSteps(userLocation, {
-                    latitude: nearestAED.latitude,
-                    longitude: nearestAED.longitude,
-                  });
-                }
-              }}
-            />
-          </>
+              if (userLocation && nearestAED) {
+                fetchRouteSteps(userLocation, {
+                  latitude: nearestAED.latitude,
+                  longitude: nearestAED.longitude,
+                });
+              }
+            }}
+          />
         )}
-      </MapComponent>
+      </ClusteredMapView>
 
       {/* {steps.length > 0 && (
         <View
