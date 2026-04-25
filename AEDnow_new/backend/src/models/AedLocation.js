@@ -16,6 +16,10 @@ const aedLocationSchema = new mongoose.Schema({
     type: String,
     required: false
   },
+  eircode: {
+    type: String,
+    required: false
+  },
   operator: {
     type: String,
     required: false
@@ -45,7 +49,8 @@ const aedLocationSchema = new mongoose.Schema({
     required: false
   }
 }, {
-  collection: 'aed_clean_normalized_stand_dates_with_validation'
+  // collection: 'aed_clean_normalized_stand_dates_with_validation'
+  collection: 'cleaned_aeds_with_eircode'
 });
 
 // Create a 2dsphere index for geospatial queries
